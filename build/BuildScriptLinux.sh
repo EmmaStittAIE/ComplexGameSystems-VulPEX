@@ -5,7 +5,8 @@
 # 1 = GLM | 2 = GLFW
 function failedDownLib {
     echo ""
-    echo "---Build failed---"
+    echo "---Download Failed---"
+    echo ""
 
     case $1 in
 
@@ -23,6 +24,26 @@ function failedDownLib {
             echo "Unknown error occured while downloading libraries"
 
     esac
+
+    exit 1
+}
+
+function failedPremake {
+    echo ""
+    echo "---Premake Failed---"
+    echo ""
+
+    echo "Premake5 was not able to generate project files"
+
+    exit
+}
+
+function failedBuild {
+    echo ""
+    echo "---Build Failed---"
+    echo ""
+
+    echo "Make was not able to build project"
 
     exit
 }
@@ -105,12 +126,22 @@ echo ""
 # Premake
 echo "Running premake..."
 cd ..
-premake5 gmake2
+
+if ! premake5 gmake2; then
+    failedPremake
+fi
+
+echo "Premake complete"
 
 # Make
 echo "Running make"
 cd generated
-make
+
+if ! make; then
+    failedBuild
+fi
+
+echo "Make complete"
 
 echo "Build complete"
 
