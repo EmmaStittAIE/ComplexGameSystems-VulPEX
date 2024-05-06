@@ -3,6 +3,7 @@ workspace "Hello Workspace"
     startproject "Hello Project"
 
     language "C++"
+    cppdialect "C++20"
     toolset "clang"
 
     location "generated"
@@ -49,17 +50,20 @@ project "Test Application"
     includedirs
     {
         "lib/glm",
-        "lib/GLFW/include"
+        "lib/GLFW/include",
+        "$(VULKAN_SDK)/include"
     }
 
     libdirs
     {
-        "lib/GLFW"
+        "lib/GLFW",
+        libdirs { os.findlib("vulkan") }
     }
 
     links
     {
-        "glfw3"
+        "glfw3",
+        "vulkan"
     }
 
     files
