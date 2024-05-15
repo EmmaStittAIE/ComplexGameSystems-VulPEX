@@ -4,12 +4,16 @@
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-struct Resolution
-{
-    int width = 800;
-    int height = 600;
+#include "Maths.hpp"
 
-    float GetAspect() { return width / (float)height; }
+struct WindowInfo
+{
+	GLFWmonitor* targetMonitor = nullptr;
+
+	const char* title = "Vulkan Application";
+
+    int width = 0;
+    int height = 0;
 };
 
 class VulkanApplication
@@ -20,7 +24,7 @@ class VulkanApplication
     // Window resources
     GLFWwindow* m_window;
 
-    Resolution m_res;
+    IVec2 m_winDimensions = {0, 0};
 
     void Update(float delta);
     void Render();
@@ -28,8 +32,11 @@ class VulkanApplication
 public:
     VulkanApplication();
     
-	void Init();
+	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vulkanExtensions, VkInstanceCreateFlags vkFlags);
     void Run();
+
+	// Getters
+    float GetAspect() { return m_winDimensions.x / (float)m_winDimensions.y; }
 
     // Bools
     bool IsRunning();

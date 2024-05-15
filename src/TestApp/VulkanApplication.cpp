@@ -2,7 +2,7 @@
 
 #include <vector>
 
-#include "Logger.h"
+#include "Logger.hpp"
 
 // Private Methods
 
@@ -27,26 +27,32 @@ VulkanApplication::VulkanApplication()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);    
 }
 
-void VulkanApplication::Init()
+void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags)
 {
     // Create window
-    m_window = glfwCreateWindow(m_res.width, m_res.height, "Don't forget to randomise this!!!", nullptr, nullptr);
+    m_window = glfwCreateWindow(winInfo.width, winInfo.height, winInfo.title, winInfo.targetMonitor, nullptr);
+
+	glfwGetWindowSize(m_window, &m_winDimensions.x, &m_winDimensions.y);
 
     // --Init Vulkan--
-    // Configure App Info
-    VkApplicationInfo appInfo
-    {
-        VK_STRUCTURE_TYPE_APPLICATION_INFO,		//sType
-        NULL,									//pNext
-        "Test App",								//pApplicationName
-        VK_MAKE_VERSION(0, 0, 1),				//applicationVersion
-		NULL,									//pEngineName
-		0,										//engineVersion
-		VK_API_VERSION_1_3						//apiVersion
-    };
-
 	// Get Extension Info
-	
+
+	// Retrieve glfw's list of required extensions
+	uint32_t glfwExtensionCount;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	// Add reqired extensions to vkExtensions
+	for (uint i = 0; i < glfwExtensionCount; i++)
+	{
+		// If the user hasn't already, add the required extensions to our extension list
+		if (std::find(vkExtensions.begin(), vkExtensions.end(), glfwExtensions[i]) == vkExtensions.end())
+		{
+			vkExtensions.push_back(glfwExtensions[i]);
+		}
+	}
+
+	// Get extension compatibility info
+
 	// First, find out how many supported extensions there are
 	uint32_t supportedExtensionsCount;
 	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
@@ -57,20 +63,16 @@ void VulkanApplication::Init()
 	// Finally, retrieve the info on all supported extensions
 	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
 
-	// Retrieve glfw's list of required extensions
-	uint32_t glfwExtensionCount;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
 	// Then (in a very bad and ugly fashion), check if these extensions are supported by the system
 	// TODO: Make this... less... bad?
 	std::vector<const char*> unsupportedExtensions;
-	for (int i = 0; i < glfwExtensionCount; i++)
+	for (uint i = 0; i < vkExtensions.size(); i++)
 	{
 		bool extensionSupported = false;
 
-		for (int j = 0; j < supportedExtensionsCount; j++)
+		for (uint j = 0; j < supportedExtensionsCount; j++)
 		{
-			if (strcmp(supportedExtensions[j].extensionName, glfwExtensions[i]) == 0)
+			if (strcmp(supportedExtensions[j].extensionName, vkExtensions[i]) == 0)
 			{
 				extensionSupported = true;
 				break;
@@ -88,12 +90,12 @@ void VulkanApplication::Init()
 	{
 		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,	//sType
 		NULL,									//pNext
-		0,										//flags
+		vkFlags,								//flags
 		&appInfo,								//pApplicationInfo
 		0,										//enabledLayerCount
 		NULL,									//ppEnabledLayerNames
-		glfwExtensionCount,						//enabledExtensionCount
-		glfwExtensions							//ppEnabledExtensionNames
+		(uint32_t)vkExtensions.size(),			//enabledExtensionCount
+		vkExtensions.data()						//ppEnabledExtensionNames
 	};
 
 	// Create info, custom memory allocator callback, pointer to instance

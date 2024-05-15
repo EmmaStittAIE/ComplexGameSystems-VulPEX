@@ -151,5 +151,10 @@ if [ $1 == "-run" ] || [ $1 == "-r" ] || [ $1 == "-R" ]; then
     echo ""
     cd ..
     cd build/debug/TestApp/bin
-    ./TestApp
+
+    if [ $2 == "-debug" ] || [ $2 == "-d" ] || [ $2 == "-D" ]; then
+        gdb TestApp
+    else
+        ./TestApp
+    fi
 fi
