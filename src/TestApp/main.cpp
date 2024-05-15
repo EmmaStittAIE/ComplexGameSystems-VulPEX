@@ -1,22 +1,25 @@
 #include <iostream>
+#include <stdexcept>
 
 #include <glm.hpp>
-#include <GLFW/glfw3.h>
+
+#include "VulkanApplication.hpp"
+#include "Logger.h"
 
 int main(void)
 {
-    glm::vec3 test(1, 2, 3);
-    
-    std::cout << "Hello Premake World!" << std::endl;
-    
-    std::cout << "Vec3(" << test.x << ", " << test.y << ", " << test.z << ")" << std::endl;
+    VulkanApplication vkApp;
 
-    if(!glfwInit()) {
-        std::cout << "GLFW failed to initialise" << std::endl;
-		return 1;
-	}
+	// TODO: better error handling. Currently we just... relay the info in the exception and end the program. Better than nothing, but not great
+    try
+    {
+		vkApp.Init();
 
-    std::cout << "GLFW initialised successfully" << std::endl;
-	glfwTerminate();
-	return 0;
+        vkApp.Run();
+    }
+    catch (const std::exception& ex)
+    {
+        Logger::Log( { "Application encountered an exception: ", ex.what() }, LogType::Error );
+        return 1;
+    }
 }

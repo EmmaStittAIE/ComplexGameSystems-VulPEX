@@ -1,6 +1,6 @@
 workspace "Hello Workspace"
     filename "HelloWorkspace"
-    startproject "Hello Project"
+    startproject "Test Application"
 
     language "C++"
     cppdialect "C++20"
@@ -50,8 +50,7 @@ project "Test Application"
     includedirs
     {
         "lib/glm",
-        "lib/GLFW/include",
-        "$(VULKAN_SDK)/include"
+        "lib/GLFW/include"
     }
 
     libdirs

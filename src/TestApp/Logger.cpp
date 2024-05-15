@@ -15,6 +15,8 @@ void Logger::Log(std::initializer_list<std::string> messageText, LogType type)
 
 	switch (type)
 	{
+	case None:
+		break;
 	case Info:
 		concatMessage = "Info: " + concatMessage;
 		break;
@@ -23,8 +25,6 @@ void Logger::Log(std::initializer_list<std::string> messageText, LogType type)
 		break;
 	case Error:
 		concatMessage = "Error: " + concatMessage;
-		break;
-	default:
 		break;
 	}
 
