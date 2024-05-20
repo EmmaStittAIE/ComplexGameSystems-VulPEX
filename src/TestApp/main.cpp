@@ -53,7 +53,13 @@ int main(void)
     {
 		vkApp.Init(winInfo, appInfo, extensions, 0);
 
-        vkApp.Run();
+        while (vkApp.IsRunning())
+    	{
+        	//Render();
+
+        	// Events (input, etc.)
+        	glfwPollEvents();
+    	}
     }
     catch (const std::exception& ex)
     {

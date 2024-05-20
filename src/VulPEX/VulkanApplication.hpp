@@ -26,20 +26,23 @@ class VulkanApplication
 
     IVec2 m_winDimensions = {0, 0};
 
-    void Update(float delta);
-    void Render();
+	// Bools
+	bool AreExtensionsSupported(std::vector<const char*> extensions) const;
+	
+	#ifdef _DEBUG
+		bool AreValidationLayersSupported(std::vector<const char*> validationLayers) const;
+	#endif
 
 public:
     VulkanApplication();
     
-	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vulkanExtensions, VkInstanceCreateFlags vkFlags);
-    void Run();
+	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
 
 	// Getters
-    float GetAspect() { return m_winDimensions.x / (float)m_winDimensions.y; }
+    float GetAspect() const { return m_winDimensions.x / (float)m_winDimensions.y; }
 
     // Bools
-    bool IsRunning();
+    bool IsRunning() const { return !glfwWindowShouldClose(m_window); };
 
     ~VulkanApplication();
 };

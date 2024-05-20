@@ -1,19 +1,77 @@
 #include "VulkanApplication.hpp"
 
 #include <vector>
+#include <iostream>
 
 // Private Methods
 
-void VulkanApplication::Update(float delta)
+bool VulkanApplication::AreExtensionsSupported(std::vector<const char *> extensions) const
 {
+	// Get extension compatibility info
 
+	// First, find out how many supported extensions there are
+	uint32_t supportedExtensionsCount;
+	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
+
+	// Create an array to store the actual info about those extensions
+	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
+
+	// Retrieve the info on all supported extensions
+	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
+
+	// Finally, check if these extensions are supported by the system
+	for (const char* extensionName : extensions)
+	{
+		bool extensionSupported = false;
+
+		for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
+		{
+			if (strcmp(supportedExtensionProperties.extensionName, extensionName) == 0)
+			{
+				extensionSupported = true;
+				break;
+			}
+		}
+		
+		if (!extensionSupported)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
-void VulkanApplication::Render()
-{
+#ifdef _DEBUG
+	bool VulkanApplication::AreValidationLayersSupported(std::vector<const char*> validationLayers) const
+	{
+		uint32_t supportedLayerCount;
+		vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
 
-}
+		std::vector<VkLayerProperties> supportedLayers(supportedLayerCount);
+		vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
 
+		// Finally, check if these extensions are supported by the system
+		for (const char* layerName : validationLayers)
+		{
+			bool layerSupported = false;
+
+			for (VkLayerProperties supportedLayerProperties : supportedLayers)
+			{
+				if (strcmp(supportedLayerProperties.layerName, layerName) == 0)
+				{
+					layerSupported = true;
+					break;
+				}
+			}
+			
+			if (!layerSupported)
+			{
+				return false;
+			}
+		}
+	}
+#endif
 // Public Methods
 
 VulkanApplication::VulkanApplication()
@@ -49,39 +107,30 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 		}
 	}
 
-	// Get extension compatibility info
-
-	// First, find out how many supported extensions there are
-	uint32_t supportedExtensionsCount;
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
-
-	// Then, create an array to store the actual info about those extensions
-	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
-
-	// Finally, retrieve the info on all supported extensions
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
-
-	// Then (in a very bad and ugly fashion), check if these extensions are supported by the system
-	// TODO: Make this... less... bad?
-	std::vector<const char*> unsupportedExtensions;
-	for (uint i = 0; i < vkExtensions.size(); i++)
+	if (!AreExtensionsSupported(vkExtensions))
 	{
-		bool extensionSupported = false;
-
-		for (uint j = 0; j < supportedExtensionsCount; j++)
-		{
-			if (strcmp(supportedExtensions[j].extensionName, vkExtensions[i]) == 0)
-			{
-				extensionSupported = true;
-				break;
-			}
-		}
-		
-		if (!extensionSupported)
-		{
-			throw std::runtime_error("One or more extensions required by GLFW are not supported by the target system"); 
-		}
+		throw std::runtime_error("One or more of the extensions specified are not supported by the target system"); 
 	}
+
+	// Validation layers
+	uint32_t enabledLayerCount = 0;
+	const char* const* enabledLayerNames = NULL;
+
+	// TODO: figure out why this symbol doesn't exist
+	#ifdef _DEBUG
+		const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
+
+		if (!AreValidationLayersSupported(validationLayers))
+		{
+			throw std::runtime_error("One or more of the validation layers specified are not supported by the target system"); 
+		}
+
+		enabledLayerCount = validationLayers.size();
+		enabledLayerNames = validationLayers.data();
+	#endif
+
+	std::cout << std::to_string(enabledLayerCount) << std::endl;
+	std::cout << enabledLayerNames << std::endl;
 
 	// Configure Instance Info
 	VkInstanceCreateInfo instanceInfo
@@ -90,8 +139,8 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 		NULL,									//pNext
 		vkFlags,								//flags
 		&appInfo,								//pApplicationInfo
-		0,										//enabledLayerCount
-		NULL,									//ppEnabledLayerNames
+		enabledLayerCount,						//enabledLayerCount
+		enabledLayerNames,						//ppEnabledLayerNames
 		(uint32_t)vkExtensions.size(),			//enabledExtensionCount
 		vkExtensions.data()						//ppEnabledExtensionNames
 	};
@@ -105,25 +154,9 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	}
 }
 
-void VulkanApplication::Run()
-{
-    while (IsRunning())
-    {
-        Render();
-
-        // Events (input, etc.)
-        glfwPollEvents();
-    }
-}
-
-bool VulkanApplication::IsRunning()
-{
-    return !glfwWindowShouldClose(m_window);
-}
-
 VulkanApplication::~VulkanApplication()
 {
-	vkDestroyInstance(vulkanInstance, nullptr);
+	if (vulkanInstance != NULL) { vkDestroyInstance(vulkanInstance, nullptr); }
 
 	if (m_window != nullptr) { glfwDestroyWindow(m_window); }
 
