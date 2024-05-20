@@ -3,7 +3,7 @@
 # Runs when we fail to download a crucial library
 # It is assumed that we are in "lib" when this is called
 # 1 = GLM | 2 = GLFW
-function failedDownLib {
+function FailedDownLib {
     echo ""
     echo "---Download Failed---"
     echo ""
@@ -25,28 +25,83 @@ function failedDownLib {
 
     esac
 
-    exit 1
+    exit 2
 }
 
-function failedPremake {
+function FailedPremake {
     echo ""
     echo "---Premake Failed---"
     echo ""
 
     echo "Premake5 was not able to generate project files"
 
-    exit
+    exit 3
 }
 
-function failedBuild {
+function FailedBuild {
     echo ""
     echo "---Build Failed---"
     echo ""
 
     echo "Make was not able to build project"
 
-    exit
+    exit 4
 }
+
+function CannotRun {
+    echo ""
+    echo "---Failed to Run---"
+    echo ""
+
+    echo "Cannot run executable of platform type \"$platform\""
+
+    exit 5
+}
+
+function PrintHelp {
+    echo "Usage: $0 [ -c CONFIG] [ -p PLATFORM ] [ -r ] [ -d ]"
+}
+
+# Define default options
+run=false
+debug=false
+config="debug"
+platform="linux"
+
+# getopts loop
+while getopts "hrdc:p:" options; do
+
+    case "${options}" in
+
+        h)
+            PrintHelp
+            exit 0
+            ;;
+
+        r)
+            run=true
+            ;;
+
+        d)
+            debug=true
+            ;;
+
+        c)
+            config=${OPTARG}
+            ;;
+
+        p)
+            platform=${OPTARG}
+            ;;
+
+        *)
+            PrintHelp
+            exit 1
+            ;;
+    esac
+done
+
+buildConfig="${config,,}_${platform,,}"
 
 echo "---Build Start---"
 
@@ -61,7 +116,7 @@ if ! test -d glm; then
     echo "Cloning GLM..."
 
     if ! git clone https://github.com/g-truc/glm; then
-        failedDownLib 1
+        FailedDownLib 1
     fi
 
     echo "Prepping GLM..."
@@ -85,7 +140,7 @@ if ! test -d GLFW; then
     echo "Cloning GLFW..."
 
     if ! git clone https://github.com/glfw/glfw; then
-        failedDownLib 2
+        FailedDownLib 2
     fi
 
     echo "Building GLFW..."
@@ -128,7 +183,7 @@ echo "Running premake..."
 cd ..
 
 if ! premake5 gmake2; then
-    failedPremake
+    FailedPremake
 fi
 
 echo "Premake complete"
@@ -137,22 +192,28 @@ echo "Premake complete"
 echo "Running make"
 cd generated
 
-if ! make; then
-    failedBuild
+
+if ! make config=$buildConfig; then
+    FailedBuild
 fi
 
 echo "Make complete"
 
 echo "Build complete"
 
-if [ $1 == "-run" ] || [ $1 == "-r" ] || [ $1 == "-R" ]; then
+if [[ $run == true ]]; then
+
+    if [[ ${platform} != "Linux" ]]; then
+        CannotRun
+    fi
+
     echo ""
     echo "---Running Main Project---"
     echo ""
     cd ..
-    cd build/debug/TestApp/bin
+    cd build/$platform/$config/TestApp/bin
 
-    if [ $2 == "-debug" ] || [ $2 == "-d" ] || [ $2 == "-D" ]; then
+    if [[ $debug == true ]]; then
         gdb TestApp
     else
         ./TestApp

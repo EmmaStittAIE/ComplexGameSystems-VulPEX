@@ -2,8 +2,6 @@
 
 #include <vector>
 
-#include "Logger.hpp"
-
 // Private Methods
 
 void VulkanApplication::Update(float delta)

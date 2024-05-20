@@ -1,9 +1,7 @@
-#include <iostream>
 #include <stdexcept>
 
-#include <glm.hpp>
+#include <VulkanApplication.hpp>
 
-#include "VulkanApplication.hpp"
 #include "Logger.hpp"
 
 int main(void)
