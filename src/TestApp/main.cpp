@@ -1,19 +1,37 @@
 #include <stdexcept>
+#include <vector>
+#include <sstream>
 
 #include <VulkanApplication.hpp>
 
 #include "Logger.hpp"
+#include "Utils.hpp"
 
 int main(void)
 {
+	// Create our VulkanApplication
     VulkanApplication vkApp;
 
+	// Generate random window title
+	std::stringstream titleStringsStream(Utils::LoadFileToString("Assets/TitleStrings.txt"));
+
+	std::vector<std::string> titleStrings;
+	std::string substring;
+	char deliminator = '\n';
+	while (std::getline(titleStringsStream, substring, deliminator))
+	{
+		titleStrings.push_back(substring);
+	}
+
+	std::string windowTitle = Utils::GetRandomString(titleStrings);
+
+	// Configure window info
 	WindowInfo winInfo
 	{
-		nullptr,
-		"Don't forget to randomise this!!!",
-		800,
-		600
+		nullptr,				//targetMonitor
+		windowTitle.c_str(),	//title
+		800,					//width
+		600						//height
 	};
 
 	// Configure App Info
