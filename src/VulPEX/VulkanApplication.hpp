@@ -26,6 +26,15 @@ class VulkanApplication
 
     IVec2 m_winDimensions = {0, 0};
 
+	// Misc
+	#ifdef _DEBUG
+		VkDebugUtilsMessageSeverityFlagBitsEXT lowestSeverityToLog = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+	#else
+		VkDebugUtilsMessageSeverityFlagBitsEXT lowestSeverityToLog = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+	#endif
+
+	// Functions
+
 	std::vector<const char*> GetRequiredExtensions() const;
 
 	// Bools
@@ -39,6 +48,9 @@ public:
     VulkanApplication();
     
 	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
+
+	// Setters
+	void SetLowesSeverityToLog(VkDebugUtilsMessageSeverityFlagBitsEXT severity) { lowestSeverityToLog = severity; }
 
 	// Getters
     float GetAspect() const { return m_winDimensions.x / (float)m_winDimensions.y; }

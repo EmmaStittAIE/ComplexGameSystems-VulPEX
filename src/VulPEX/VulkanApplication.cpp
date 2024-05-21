@@ -3,6 +3,8 @@
 #include <vector>
 #include <iostream>
 
+#include <Logger.hpp>
+
 // Callbacks
 // Alright, lots to unpack here
 // VKAPI_ATTR is a macro placed before the return type of a function, and allows Vulkan to call the function properly using C++11 and GCC/Clang-style compilers
@@ -14,7 +16,29 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
 	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
 	void* pUserData)
 {
-	// TODO: Add proper logging
+	// TODO: Make this local to this function
+	if (messageSeverity < lowestSeverityToLog)
+
+	switch(messageSeverity)
+	{
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+			Logger::Log({}, LogType::None);
+			break;
+		
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+			Logger::Log({}, LogType::Info);
+			break;
+		
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+			Logger::Log({}, LogType::Warning);
+			break;
+		
+		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+			Logger::Log({}, LogType::Error);
+			break;
+	}
+
+	return VK_FALSE;
 }
 
 // Private Methods
