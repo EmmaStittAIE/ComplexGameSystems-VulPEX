@@ -26,6 +26,8 @@ class VulkanApplication
 
     IVec2 m_winDimensions = {0, 0};
 
+	std::vector<const char*> GetRequiredExtensions() const;
+
 	// Bools
 	bool AreExtensionsSupported(std::vector<const char*> extensions) const;
 	

@@ -3,7 +3,36 @@
 #include <vector>
 #include <iostream>
 
+// Callbacks
+// Alright, lots to unpack here
+// VKAPI_ATTR is a macro placed before the return type of a function, and allows Vulkan to call the function properly using C++11 and GCC/Clang-style compilers
+// VkBool32 is just a bool typedef, since Vulkan is based in C, and C doesn't have an official bool type
+// VKAPI_CALL is a macro placed after the return type of a function, and allows Vulkan to call the function properly using MSVC-style compilers
+static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
+	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	VkDebugUtilsMessageTypeFlagsEXT messageType,
+	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	void* pUserData)
+{
+	// TODO: Add proper logging
+}
+
 // Private Methods
+
+std::vector<const char *> VulkanApplication::GetRequiredExtensions() const
+{
+	// Retrieve glfw's list of required extensions
+	uint32_t glfwExtensionCount;
+	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+
+	std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
+
+	#ifdef _DEBUG
+		requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+	#endif
+
+	return requiredExtensions;
+}
 
 bool VulkanApplication::AreExtensionsSupported(std::vector<const char *> extensions) const
 {
@@ -70,6 +99,8 @@ bool VulkanApplication::AreExtensionsSupported(std::vector<const char *> extensi
 				return false;
 			}
 		}
+
+		return true;
 	}
 #endif
 // Public Methods
@@ -93,19 +124,11 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
     // --Init Vulkan--
 	// Get Extension Info
 
-	// Retrieve glfw's list of required extensions
-	uint32_t glfwExtensionCount;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
+	std::vector<const char*> requiredExtensions = GetRequiredExtensions();
 
 	// Add reqired extensions to vkExtensions
-	for (uint i = 0; i < glfwExtensionCount; i++)
-	{
-		// If the user hasn't already, add the required extensions to our extension list
-		if (std::find(vkExtensions.begin(), vkExtensions.end(), glfwExtensions[i]) == vkExtensions.end())
-		{
-			vkExtensions.push_back(glfwExtensions[i]);
-		}
-	}
+	vkExtensions.reserve(vkExtensions.size() + requiredExtensions.size());
+	vkExtensions.insert(vkExtensions.end(), requiredExtensions.begin(), requiredExtensions.end());
 
 	if (!AreExtensionsSupported(vkExtensions))
 	{
@@ -128,9 +151,6 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 		enabledLayerCount = validationLayers.size();
 		enabledLayerNames = validationLayers.data();
 	#endif
-
-	std::cout << std::to_string(enabledLayerCount) << std::endl;
-	std::cout << enabledLayerNames << std::endl;
 
 	// Configure Instance Info
 	VkInstanceCreateInfo instanceInfo
