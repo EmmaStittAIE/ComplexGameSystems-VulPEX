@@ -1,1 +1,0 @@
-The generated makefile for the project will be placed here. Feel free to delete this file after cloning the repo.

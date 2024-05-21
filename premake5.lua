@@ -1,5 +1,5 @@
-workspace "Hello Workspace"
-    filename "HelloWorkspace"
+workspace "VulPEX Workspace"
+    filename "VulPEXWorkspace"
     startproject "Test Application"
 
     language "C++"
@@ -7,10 +7,8 @@ workspace "Hello Workspace"
     toolset "clang"
 
     location "generated"
-
-    genericBuildPath = ""
     
-    configurations { "DebugStatic", "DebugShared", "ReleaseStatic", "ReleaseShared" }
+    configurations { "Debug", "Release" }
     platforms { "Linux", "Win32", "Win64" }
 
     filter "configurations:Debug"
@@ -19,15 +17,11 @@ workspace "Hello Workspace"
     
         defines { "_DEBUG" }
 
-        genericBuildPath = "debug"
-
     filter "configurations:Release"
         symbols "Off"
         optimize "On"
 
         defines { "_RELEASE" }
-
-        genericBuildPath = "release"
 
     filter "platforms:Linux"
         system "linux"
@@ -35,15 +29,11 @@ workspace "Hello Workspace"
 
         defines { "_LINUX" }
 
-        genericBuildPath = "linux/" .. genericBuildPath
-
     filter "platforms:Win32"
         system "windows"
         architecture "x86"
 
         defines { "_WIN32" }
-
-        genericBuildPath = "win32/" .. genericBuildPath
 
     filter "platforms:Win64"
         system "windows"
@@ -51,14 +41,11 @@ workspace "Hello Workspace"
 
         defines { "_WIN64" }
 
-        genericBuildPath = "win64/" .. genericBuildPath
-
     filter {}
 
 project "VulPEX"
     filename "VulPEX"
     targetname "VulPEX"
-    targetprefix ""
     targetdir "build/%{cfg.platform}/%{cfg.buildcfg}/VulPEX"
     objdir "build/%{cfg.platform}/%{cfg.buildcfg}/VulPEX/obj"
 
@@ -72,18 +59,21 @@ project "VulPEX"
     includedirs
     {
         "lib/glm",
-        "lib/GLFW/include"
+        "lib/GLFW/include",
+        "lib/EmmaUtils/include"
     }
 
     libdirs
     {
         "lib/GLFW",
+        "lib/EmmaUtils",
         libdirs { os.findlib("vulkan") }
     }
 
     links
     {
         "glfw3",
+        "EmmaUtils-d",
         "vulkan"
     }
 
@@ -92,12 +82,10 @@ project "VulPEX"
         "src/VulPEX/**.cpp",
     }
 
-    filter "configurations:DebugStatic or ReleaseStatic"
-        targetsuffix "-d"
-        kind "StaticLib"
+    kind "StaticLib"
 
-    filter "configurations:DebugShared or ReleaseShared"
-        kind "SharedLib"
+    filter "configurations:Debug"
+        targetsuffix "-d"
 
     filter {}
 
@@ -125,18 +113,21 @@ project "Test Application"
     {
         "lib/glm",
         "lib/GLFW/include",
+        "lib/EmmaUtils/include",
         "build/%{cfg.platform}/%{cfg.buildcfg}/VulPEX/include"
     }
 
     libdirs
     {
         "lib/GLFW",
+        "lib/EmmaUtils",
         libdirs { os.findlib("vulkan") }
     }
 
     links
     {
         "glfw3",
+        "EmmaUtils",
         "vulkan",
         "VulPEX"
     }
@@ -146,10 +137,10 @@ project "Test Application"
         "src/TestApp/**.cpp",
     }
 
-    filter "configurations:DebugStatic or DebugShared"
+    filter "configurations:Debug"
         kind "ConsoleApp"
 
-    filter "configurations:ReleaseStatic or ReleaseShared"
+    filter "configurations:Release"
         kind "WindowedApp"
 
     filter {}

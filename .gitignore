@@ -3,10 +3,8 @@ build/*
 !build/BuildScriptLinux.sh
 
 generated/*
-!generated/Makefile goes here.txt
 
 lib/*
-!lib/Libraries go here.txt
 
 # Kate (Text Editor)
 *.kate-swp

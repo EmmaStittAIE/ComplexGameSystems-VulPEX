@@ -2,7 +2,7 @@
 
 # Runs when we fail to download a crucial library
 # It is assumed that we are in "lib" when this is called
-# 1 = GLM | 2 = GLFW
+# 1 = GLM | 2 = GLFW | 3 = EmmaUtils
 function FailedDownLib {
     echo ""
     echo "---Download Failed---"
@@ -18,6 +18,11 @@ function FailedDownLib {
         2)
             echo "Failed to clone GLFW"
             rm -rf glfw
+            ;;
+
+        2)
+            echo "Failed to clone EmmaUtils"
+            rm -rf EmmaUtils
             ;;
 
         *)
@@ -109,7 +114,10 @@ echo "---Build Start---"
 echo ""
 echo "---Downloading Libraries---"
 echo ""
-cd ../lib
+cd ..
+
+mkdir lib
+cd lib
 
 # GLM
 if ! test -d glm; then
@@ -175,9 +183,50 @@ else
     echo "GLFW already exists, skipping..."
 fi
 
+if ! test -d EmmaUtils; then
+    echo "Cloning EmmaUtils..."
+
+    if ! git clone https://github.com/EmmaStittAIE/EmmaUtils; then
+        FailedDownLib 3
+    fi
+
+    echo "Building EmmaUtils..."
+    mv EmmaUtils EmmaUtilsGit
+
+    cd EmmaUtilsGit
+
+    premake5 gmake2
+
+    cd generated
+
+    make config=debug_linux
+    make config=release_linux
+
+    echo "Prepping EmmaUtils..."
+    cd ../build/Linux
+    mv Debug ../../../EmmaUtils
+
+    cd Release
+    mv libEmmaUtils.a ../../../../EmmaUtils
+
+    cd ../../../../EmmaUtils
+    rm -rf obj
+
+    cd include
+    mv EmmaUtils ..
+
+    cd ..
+    rm -rf include
+    mv EmmaUtils include
+
+    cd ..
+    rm -rf EmmaUtilsGit
+fi
+
 echo ""
 echo "---Building Projects---"
 echo ""
+
 # Premake
 echo "Running premake..."
 cd ..
@@ -191,7 +240,6 @@ echo "Premake complete"
 # Make
 echo "Running make"
 cd generated
-
 
 if ! make config=$buildConfig; then
     FailedBuild

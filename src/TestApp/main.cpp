@@ -3,9 +3,9 @@
 #include <sstream>
 
 #include <VulkanApplication.hpp>
-
-#include "Logger.hpp"
-#include "Utils.hpp"
+#include <Logger.hpp>
+#include <FileHandling.hpp>
+#include <Rand.hpp>
 
 int main(void)
 {
@@ -13,7 +13,7 @@ int main(void)
     VulkanApplication vkApp;
 
 	// Generate random window title
-	std::stringstream titleStringsStream(Utils::LoadFileToString("Assets/TitleStrings.txt"));
+	std::stringstream titleStringsStream(FileHandling::LoadFileToString("Assets/TitleStrings.txt"));
 
 	std::vector<std::string> titleStrings;
 	std::string substring;
@@ -23,7 +23,7 @@ int main(void)
 		titleStrings.push_back(substring);
 	}
 
-	std::string windowTitle = Utils::GetRandomString(titleStrings);
+	std::string windowTitle = Rand::GetRandomStringFromList(titleStrings);
 
 	// Configure window info
 	WindowInfo winInfo
