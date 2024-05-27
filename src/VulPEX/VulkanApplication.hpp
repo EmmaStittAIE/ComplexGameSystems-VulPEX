@@ -19,19 +19,15 @@ struct WindowInfo
 class VulkanApplication
 {
     // Vulkan resources
-    VkInstance vulkanInstance;
+    VkInstance m_vulkanInstance;
+	#ifdef _DEBUG
+		VkDebugUtilsMessengerEXT m_debugMessenger;
+	#endif
 
     // Window resources
     GLFWwindow* m_window;
 
     IVec2 m_winDimensions = {0, 0};
-
-	// Misc
-	#ifdef _DEBUG
-		VkDebugUtilsMessageSeverityFlagBitsEXT lowestSeverityToLog = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
-	#else
-		VkDebugUtilsMessageSeverityFlagBitsEXT lowestSeverityToLog = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	#endif
 
 	// Functions
 
@@ -39,7 +35,6 @@ class VulkanApplication
 
 	// Bools
 	bool AreExtensionsSupported(std::vector<const char*> extensions) const;
-	
 	#ifdef _DEBUG
 		bool AreValidationLayersSupported(std::vector<const char*> validationLayers) const;
 	#endif
@@ -50,7 +45,9 @@ public:
 	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
 
 	// Setters
-	void SetLowesSeverityToLog(VkDebugUtilsMessageSeverityFlagBitsEXT severity) { lowestSeverityToLog = severity; }
+	#ifdef _DEBUG
+		void SetLowestSeverityToLog(VkDebugUtilsMessageSeverityFlagBitsEXT severity) { /*TODO: make this do something*/ }
+	#endif
 
 	// Getters
     float GetAspect() const { return m_winDimensions.x / (float)m_winDimensions.y; }

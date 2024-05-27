@@ -120,7 +120,21 @@ mkdir lib
 cd lib
 
 # GLM
-if ! test -d glm; then
+doCloneLib=false;
+if test -f glm/.hash.txt; then
+    localHash=$(head glm/.hash.txt)
+    remoteHash=$(git ls-remote https://github.com/g-truc/glm HEAD | awk '{print $1}')
+
+    if [[ "$localHash" != "$remoteHash" ]]; then
+        doCloneLib=true;
+    fi
+else
+    doCloneLib=true;
+fi
+
+if [[ $doCloneLib == true ]]; then
+    rm -rf glm
+
     echo "Cloning GLM..."
 
     if ! git clone https://github.com/g-truc/glm; then
@@ -138,13 +152,29 @@ if ! test -d glm; then
     cd ..
     rm -rf glmGit
 
+    git ls-remote https://github.com/g-truc/glm HEAD | awk '{print $1}' > glm/.hash.txt
+
     echo "GLM is ready"
 else
     echo "GLM already exists, skipping..."
 fi
 
 # GLFW
-if ! test -d GLFW; then
+doCloneLib=false;
+if test -f GLFW/.hash.txt; then
+    localHash=$(head GLFW/.hash.txt)
+    remoteHash=$(git ls-remote https://github.com/glfw/glfw HEAD | awk '{print $1}')
+
+    if [[ "$localHash" != "$remoteHash" ]]; then
+        doCloneLib=true;
+    fi
+else
+    doCloneLib=true;
+fi
+
+if [[ $doCloneLib == true ]]; then
+    rm -rf GLFW
+
     echo "Cloning GLFW..."
 
     if ! git clone https://github.com/glfw/glfw; then
@@ -178,12 +208,29 @@ if ! test -d GLFW; then
     cd ../../..
     rm -rf glfwGit
 
+    git ls-remote https://github.com/glfw/glfw HEAD | awk '{print $1}' > GLFW/.hash.txt
+
     echo "GLFW is ready"
 else
     echo "GLFW already exists, skipping..."
 fi
 
-if ! test -d EmmaUtils; then
+# EmmaUtils
+doCloneLib=false;
+if test -f EmmaUtils/.hash.txt; then
+    localHash=$(head EmmaUtils/.hash.txt)
+    remoteHash=$(git ls-remote https://github.com/EmmaStittAIE/EmmaUtils HEAD | awk '{print $1}')
+
+    if [[ "$localHash" != "$remoteHash" ]]; then
+        doCloneLib=true;
+    fi
+else
+    doCloneLib=true;
+fi
+
+if [[ $doCloneLib == true ]]; then
+    rm -rf EmmaUtils
+
     echo "Cloning EmmaUtils..."
 
     if ! git clone https://github.com/EmmaStittAIE/EmmaUtils; then
@@ -221,6 +268,12 @@ if ! test -d EmmaUtils; then
 
     cd ..
     rm -rf EmmaUtilsGit
+
+    git ls-remote https://github.com/EmmaStittAIE/EmmaUtils HEAD | awk '{print $1}' > EmmaUtils/.hash.txt
+
+    echo "EmmaUtils is ready"
+else
+    echo "EmmaUtils already exists, skipping..."
 fi
 
 echo ""

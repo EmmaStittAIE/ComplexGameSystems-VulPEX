@@ -5,41 +5,45 @@
 
 #include <Logger.hpp>
 
+#include "VulkanExtensionProxies.hpp"
+
 // Callbacks
 // Alright, lots to unpack here
 // VKAPI_ATTR is a macro placed before the return type of a function, and allows Vulkan to call the function properly using C++11 and GCC/Clang-style compilers
 // VkBool32 is just a bool typedef, since Vulkan is based in C, and C doesn't have an official bool type
 // VKAPI_CALL is a macro placed after the return type of a function, and allows Vulkan to call the function properly using MSVC-style compilers
-static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
-	VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	VkDebugUtilsMessageTypeFlagsEXT messageType,
-	const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	void* pUserData)
-{
-	// TODO: Make this local to this function
-	if (messageSeverity < lowestSeverityToLog)
-
-	switch(messageSeverity)
+#ifdef _DEBUG
+	static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
+		VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+		VkDebugUtilsMessageTypeFlagsEXT messageType,
+		const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+		void* pUserData)
 	{
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
-			Logger::Log({}, LogType::None);
-			break;
-		
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
-			Logger::Log({}, LogType::Info);
-			break;
-		
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
-			Logger::Log({}, LogType::Warning);
-			break;
-		
-		case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
-			Logger::Log({}, LogType::Error);
-			break;
-	}
+		switch(messageSeverity)
+		{
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
+				Logger::Log({ pCallbackData->pMessage }, LogType::None);
+				break;
+			
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT:
+				Logger::Log({ pCallbackData->pMessage }, LogType::Info);
+				break;
+			
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT:
+				Logger::Log({ pCallbackData->pMessage }, LogType::Warning);
+				break;
+			
+			case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT:
+				Logger::Log({ pCallbackData->pMessage }, LogType::Error);
+				break;
 
-	return VK_FALSE;
-}
+			default:
+				throw std::runtime_error("Debug message severity \"" + std::to_string(messageSeverity) + "\" could not be handled");
+		}
+
+		return VK_FALSE;
+	}
+#endif
 
 // Private Methods
 
@@ -162,8 +166,8 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	// Validation layers
 	uint32_t enabledLayerCount = 0;
 	const char* const* enabledLayerNames = NULL;
+	const VkDebugUtilsMessengerCreateInfoEXT* nextPointer = NULL;
 
-	// TODO: figure out why this symbol doesn't exist
 	#ifdef _DEBUG
 		const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
 
@@ -174,13 +178,28 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 
 		enabledLayerCount = validationLayers.size();
 		enabledLayerNames = validationLayers.data();
+
+		// Only calls to warning and error will be passed through
+		// This needs to be set up now so we can show debug messages for creation and destruction of an instance, even though our debug messenger will be gone
+		VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo
+		{
+			VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,											//sType
+			NULL,																								//pNext
+			0,																									//flags
+			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,	//messageSeverity
+			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,														//messageType
+			DebugMessageCallback,																				//pfnUserCallback
+			nullptr																								//pUserData
+		};
+
+		nextPointer = &debugMessengerInfo;
 	#endif
 
 	// Configure Instance Info
 	VkInstanceCreateInfo instanceInfo
 	{
 		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,	//sType
-		NULL,									//pNext
+		nextPointer,							//pNext
 		vkFlags,								//flags
 		&appInfo,								//pApplicationInfo
 		enabledLayerCount,						//enabledLayerCount
@@ -190,17 +209,31 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	};
 
 	// Create info, custom memory allocator callback, pointer to instance
-	VkResult result = vkCreateInstance(&instanceInfo, nullptr, &vulkanInstance);
+	VkResult createInstanceResult = vkCreateInstance(&instanceInfo, nullptr, &m_vulkanInstance);
 
-	if (result != VK_SUCCESS)
+	if (createInstanceResult != VK_SUCCESS)
 	{
-		throw std::runtime_error("Creation of Vulkan instance failed with error code: " + std::to_string(result));
+		throw std::runtime_error("Creation of Vulkan instance failed with error code: " + std::to_string(createInstanceResult));
 	}
+
+	// Create debug callback
+	#ifdef _DEBUG
+		VkResult createDebugMessengerResult = Proxy::vkCreateDebugUtilsMessengerEXT(m_vulkanInstance, &debugMessengerInfo, nullptr, &m_debugMessenger);
+
+		if (createDebugMessengerResult != VK_SUCCESS)
+		{
+			throw std::runtime_error("Creation of debug messenger failed with error code: " + std::to_string(createDebugMessengerResult)); 
+		}
+	#endif
 }
 
 VulkanApplication::~VulkanApplication()
 {
-	if (vulkanInstance != NULL) { vkDestroyInstance(vulkanInstance, nullptr); }
+	#ifdef _DEBUG
+		if (m_debugMessenger != NULL) { Proxy::vkDestroyDebugUtilsMessengerEXT(m_vulkanInstance, m_debugMessenger, nullptr); }
+	#endif
+
+	if (m_vulkanInstance != NULL) { vkDestroyInstance(m_vulkanInstance, nullptr); }
 
 	if (m_window != nullptr) { glfwDestroyWindow(m_window); }
 
