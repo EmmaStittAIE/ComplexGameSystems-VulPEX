@@ -315,8 +315,8 @@ if [[ $run == true ]]; then
     cd build/$platform/$config/TestApp/bin
 
     if [[ $debug == true ]]; then
-        gdb TestApp
+        lldb TestApp 2>&1
     else
-        ./TestApp
+        ./TestApp 2>&1
     fi
 fi
