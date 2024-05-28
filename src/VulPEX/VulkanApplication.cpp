@@ -1,11 +1,12 @@
 #include "VulkanApplication.hpp"
 
 #include <vector>
-#include <iostream>
+#include <map>
 
 #include <Logger.hpp>
 
-#include "VulkanExtensionProxies.hpp"
+#include "Utility/VulkanExtensionProxies.hpp"
+#include "Utility/VulPEXUtils.hpp"
 
 // Callbacks
 // Alright, lots to unpack here
@@ -47,118 +48,16 @@
 
 // Private Methods
 
-std::vector<const char *> VulkanApplication::GetRequiredExtensions() const
+void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vector<const char *> vkExtensions, VkInstanceCreateFlags vkFlags)
 {
-	// Retrieve glfw's list of required extensions
-	uint32_t glfwExtensionCount;
-	const char** glfwExtensions = glfwGetRequiredInstanceExtensions(&glfwExtensionCount);
-
-	std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
-
-	#ifdef _DEBUG
-		requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-	#endif
-
-	return requiredExtensions;
-}
-
-bool VulkanApplication::AreExtensionsSupported(std::vector<const char *> extensions) const
-{
-	// Get extension compatibility info
-
-	// First, find out how many supported extensions there are
-	uint32_t supportedExtensionsCount;
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
-
-	// Create an array to store the actual info about those extensions
-	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
-
-	// Retrieve the info on all supported extensions
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
-
-	// Finally, check if these extensions are supported by the system
-	for (const char* extensionName : extensions)
-	{
-		bool extensionSupported = false;
-
-		for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
-		{
-			if (strcmp(supportedExtensionProperties.extensionName, extensionName) == 0)
-			{
-				extensionSupported = true;
-				break;
-			}
-		}
-		
-		if (!extensionSupported)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-#ifdef _DEBUG
-	bool VulkanApplication::AreValidationLayersSupported(std::vector<const char*> validationLayers) const
-	{
-		uint32_t supportedLayerCount;
-		vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
-
-		std::vector<VkLayerProperties> supportedLayers(supportedLayerCount);
-		vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
-
-		// Finally, check if these extensions are supported by the system
-		for (const char* layerName : validationLayers)
-		{
-			bool layerSupported = false;
-
-			for (VkLayerProperties supportedLayerProperties : supportedLayers)
-			{
-				if (strcmp(supportedLayerProperties.layerName, layerName) == 0)
-				{
-					layerSupported = true;
-					break;
-				}
-			}
-			
-			if (!layerSupported)
-			{
-				return false;
-			}
-		}
-
-		return true;
-	}
-#endif
-// Public Methods
-
-VulkanApplication::VulkanApplication()
-{
-    // --Init GLFW--
-    if(!glfwInit()) { throw std::runtime_error("GLFW failed to initialise"); }
-
-	// Disable OpenGL
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);    
-}
-
-void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags)
-{
-    // Create window
-    m_window = glfwCreateWindow(winInfo.width, winInfo.height, winInfo.title, winInfo.targetMonitor, nullptr);
-
-	glfwGetWindowSize(m_window, &m_winDimensions.x, &m_winDimensions.y);
-
-    // --Init Vulkan--
 	// Get Extension Info
-
-	std::vector<const char*> requiredExtensions = GetRequiredExtensions();
+	std::vector<const char*> requiredExtensions = VkUtils::GetRequiredExtensions();
 
 	// Add reqired extensions to vkExtensions
 	vkExtensions.reserve(vkExtensions.size() + requiredExtensions.size());
 	vkExtensions.insert(vkExtensions.end(), requiredExtensions.begin(), requiredExtensions.end());
 
-	if (!AreExtensionsSupported(vkExtensions))
+	if (!VkUtils::AreExtensionsSupported(vkExtensions))
 	{
 		throw std::runtime_error("One or more of the extensions specified are not supported by the target system"); 
 	}
@@ -169,15 +68,13 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	const VkDebugUtilsMessengerCreateInfoEXT* nextPointer = NULL;
 
 	#ifdef _DEBUG
-		const std::vector<const char*> validationLayers = { "VK_LAYER_KHRONOS_validation" };
-
-		if (!AreValidationLayersSupported(validationLayers))
+		if (!VkUtils::AreValidationLayersSupported(m_enabledValidationLayers))
 		{
 			throw std::runtime_error("One or more of the validation layers specified are not supported by the target system"); 
 		}
 
-		enabledLayerCount = validationLayers.size();
-		enabledLayerNames = validationLayers.data();
+		enabledLayerCount = m_enabledValidationLayers.size();
+		enabledLayerNames = m_enabledValidationLayers.data();
 
 		// Only calls to warning and error will be passed through
 		// This needs to be set up now so we can show debug messages for creation and destruction of an instance, even though our debug messenger will be gone
@@ -186,8 +83,9 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 			VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,											//sType
 			NULL,																								//pNext
 			0,																									//flags
-			VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,	//messageSeverity
-			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,														//messageType
+			m_severitiesToLog,																					//messageSeverity
+			VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,													//messageType
 			DebugMessageCallback,																				//pfnUserCallback
 			nullptr																								//pUserData
 		};
@@ -210,7 +108,6 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 
 	// Create info, custom memory allocator callback, pointer to instance
 	VkResult createInstanceResult = vkCreateInstance(&instanceInfo, nullptr, &m_vulkanInstance);
-
 	if (createInstanceResult != VK_SUCCESS)
 	{
 		throw std::runtime_error("Creation of Vulkan instance failed with error code: " + std::to_string(createInstanceResult));
@@ -219,7 +116,6 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	// Create debug callback
 	#ifdef _DEBUG
 		VkResult createDebugMessengerResult = Proxy::vkCreateDebugUtilsMessengerEXT(m_vulkanInstance, &debugMessengerInfo, nullptr, &m_debugMessenger);
-
 		if (createDebugMessengerResult != VK_SUCCESS)
 		{
 			throw std::runtime_error("Creation of debug messenger failed with error code: " + std::to_string(createDebugMessengerResult)); 
@@ -227,8 +123,125 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	#endif
 }
 
+void VulkanApplication::SelectPhysicalDevice()
+{
+	uint32_t physicalDeviceCount = 0;
+	vkEnumeratePhysicalDevices(m_vulkanInstance, &physicalDeviceCount, nullptr);
+
+	if (physicalDeviceCount == 0)
+	{
+		throw std::runtime_error("Could not continue, as no Vulkan-compatible GPUs were found"); 
+	}
+
+	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
+	vkEnumeratePhysicalDevices(m_vulkanInstance, &physicalDeviceCount, physicalDevices.data());
+
+	// Just learned about these, they seem pretty cool for avoiding sorting a map manually
+	std::multimap<uint, VkPhysicalDevice> deviceCandidates;
+
+	// TODO: Give user a choice between devices
+	// Choose the most suitable device
+	for (VkPhysicalDevice device : physicalDevices)
+	{
+		uint deviceScore = VkUtils::RatePhysicalDeviceCompatibility(device);
+		deviceCandidates.insert(std::make_pair(deviceScore, device));
+	}
+
+	if (deviceCandidates.begin()->first > 0)
+	{
+		m_physicalDevice = deviceCandidates.begin()->second;
+	}
+	else
+	{
+		throw std::runtime_error("Could not continue, as no compatible GPUs were found"); 
+	}
+}
+
+void VulkanApplication::CreateLogicalDevice()
+{
+	QueueFamilyIndices qfIndices = VkUtils::GetAvailableQueueFamilies(m_physicalDevice);
+
+	float queuePriority;
+	VkDeviceQueueCreateInfo queueInfo
+	{
+		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,		//sType
+    	NULL,											//pNext
+    	0,												//flags
+    	qfIndices.graphicsQueueFamily.value(),			//queueFamilyIndex
+    	1,												//queueCount
+    	&queuePriority									//pQueuePriorities
+	};
+
+	VkPhysicalDeviceFeatures featuresInfo{};
+
+	// Validation layers
+	// Vulkan no longer makes a distinction between instance-level and device-level validation layers
+	// However, since the user could be using an older version of Vulkan, we still define them so as to be compatible
+	uint32_t enabledLayerCount = 0;
+	const char* const* enabledLayerNames = NULL;
+
+	#ifdef _DEBUG
+		enabledLayerCount = m_enabledValidationLayers.size();
+		enabledLayerNames = m_enabledValidationLayers.data();
+	#endif
+	
+	VkDeviceCreateInfo logicalDeviceInfo
+	{
+		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,	//sType
+    	NULL,									//pNext
+    	0,										//flags
+    	1,										//queueCreateInfoCount
+    	&queueInfo,								//pQueueCreateInfos
+    	enabledLayerCount,						//enabledLayerCount
+    	enabledLayerNames,						//ppEnabledLayerNames
+    	0,										//enabledExtensionCount
+    	nullptr,								//ppEnabledExtensionNames
+    	&featuresInfo							//pEnabledFeatures
+	};
+
+	VkResult createDeviceResult = vkCreateDevice(m_physicalDevice, &logicalDeviceInfo, nullptr, &m_logicalDevice);
+	if (createDeviceResult != VK_SUCCESS)
+	{
+		throw std::runtime_error("Creation of logical device failed with error code: " + std::to_string(createDeviceResult));
+	}
+
+	// TODO: make this for loop to fill a vector
+	vkGetDeviceQueue(m_logicalDevice, qfIndices.graphicsQueueFamily.value(), 0, &m_graphicsQueue);
+}
+
+// Public Methods
+VulkanApplication::VulkanApplication()
+{
+    // --Init GLFW--
+    if(!glfwInit()) { throw std::runtime_error("GLFW failed to initialise"); }
+
+	// Disable OpenGL
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+}
+
+void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags)
+{
+    // Create window
+    m_window = glfwCreateWindow(winInfo.width, winInfo.height, winInfo.title, winInfo.targetMonitor, nullptr);
+
+	// TODO: make a callback to set this later
+	glfwGetWindowSize(m_window, &m_winDimensions.x, &m_winDimensions.y);
+
+    // --Init Vulkan--
+	// Initialise vulkan, and the debug messenger if _DEBUG define is set
+	CreateVulkanInstance(appInfo, vkExtensions, vkFlags);
+
+	// Find and select a GPU to render with
+	SelectPhysicalDevice();
+
+	// Create a logical device to interface with our physical device
+	CreateLogicalDevice();
+}
+
 VulkanApplication::~VulkanApplication()
 {
+	if (m_logicalDevice != NULL) { vkDestroyDevice(m_logicalDevice, nullptr); }
+
 	#ifdef _DEBUG
 		if (m_debugMessenger != NULL) { Proxy::vkDestroyDebugUtilsMessengerEXT(m_vulkanInstance, m_debugMessenger, nullptr); }
 	#endif
