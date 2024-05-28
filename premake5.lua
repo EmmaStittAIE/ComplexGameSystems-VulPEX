@@ -60,14 +60,15 @@ project "VulPEX"
     {
         "lib/glm",
         "lib/GLFW/include",
-        "lib/EmmaUtils/include"
+        "lib/EmmaUtils/include",
+        "$VULKAN_SDK/include",
     }
 
     libdirs
     {
         "lib/GLFW",
         "lib/EmmaUtils",
-        libdirs { os.findlib("vulkan") }
+        "$VULKAN_SDK/lib"
     }
 
     links
