@@ -1,5 +1,8 @@
 #pragma once
 
+#include <unordered_map>
+#include <string>
+
 // Include vulkan.hpp before glfw
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
@@ -22,19 +25,23 @@ class VulkanApplication
     VkInstance m_vulkanInstance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice m_logicalDevice = VK_NULL_HANDLE;
-	// TODO: make this a vector
-	VkQueue m_graphicsQueue = VK_NULL_HANDLE;
 
 	#ifdef _DEBUG
 		VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 	#endif
 
-    // Window resources
+	// Rendering resources
+	VkSurfaceKHR m_displaySurface = VK_NULL_HANDLE;
+
+	std::unordered_map<std::string, VkQueue> m_vulkanQueues = {{"graphicsQueue", VK_NULL_HANDLE}, {"surfaceQueue", VK_NULL_HANDLE}};
+
     GLFWwindow* m_window = nullptr;
 
     IVec2 m_winDimensions = {0, 0};
 
 	// Misc variables
+	std::vector<const char*> m_enabledDeviceExtensions = { VK_KHR_SWAPCHAIN_EXTENSION_NAME };
+
 	#ifdef _DEBUG
 		std::vector<const char*> m_enabledValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
@@ -43,6 +50,7 @@ class VulkanApplication
 
 	// Helper functions
 	void CreateVulkanInstance(VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
+	void CreateDisplaySurface();
 	void SelectPhysicalDevice();
 	void CreateLogicalDevice();
 

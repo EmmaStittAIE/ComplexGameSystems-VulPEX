@@ -2,30 +2,19 @@
 
 #include <vulkan/vulkan.hpp>
 
-struct QueueFamilyIndices {
-	std::optional<uint32_t> graphicsQueueFamily;
-
-	// TODO: Make this only contain the families that the user has specified are crucial to the project running
-	bool NecessaryFamiliesFilled() const
-	{
-		return graphicsQueueFamily.has_value();
-	}
-
-	bool IsFilled() const
-	{
-		return graphicsQueueFamily.has_value();
-	}
-};
+#include "VulPEXStructs.hpp"
 
 namespace VkUtils
 {
-	extern std::vector<const char *> GetRequiredExtensions();
-	extern QueueFamilyIndices GetAvailableQueueFamilies(VkPhysicalDevice device);
+	extern std::vector<const char*> GetRequiredExtensions();
+	extern QueueFamilyIndices GetAvailableQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+	extern SwapChainSupportInfo QuerySwapChainCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface);
 
-	extern uint RatePhysicalDeviceCompatibility(VkPhysicalDevice device);
+	extern uint RatePhysicalDeviceCompatibility(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char *> deviceExtensions);
 
 	// Bool functions
-	extern bool AreExtensionsSupported(std::vector<const char*> extensions);
+	extern bool AreInstanceExtensionsSupported(std::vector<const char*> extensions);
+	extern bool AreDeviceExtensionsSupported(VkPhysicalDevice device, std::vector<const char*> extensions);
 	#ifdef _DEBUG
 		extern bool AreValidationLayersSupported(std::vector<const char*> validationLayers);
 	#endif

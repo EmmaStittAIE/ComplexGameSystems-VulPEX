@@ -1,9 +1,11 @@
 #include "VulPEXUtils.hpp"
 
+#include <unordered_set>
+
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
-std::vector<const char *> VkUtils::GetRequiredExtensions()
+std::vector<const char*> VkUtils::GetRequiredExtensions()
 {
 	// Retrieve glfw's list of required extensions
 	uint32_t glfwExtensionCount;
@@ -18,7 +20,7 @@ std::vector<const char *> VkUtils::GetRequiredExtensions()
 	return requiredExtensions;
 }
 
-QueueFamilyIndices VkUtils::GetAvailableQueueFamilies(VkPhysicalDevice device)
+QueueFamilyIndices VkUtils::GetAvailableQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	QueueFamilyIndices indices;
 
@@ -28,11 +30,20 @@ QueueFamilyIndices VkUtils::GetAvailableQueueFamilies(VkPhysicalDevice device)
 	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
 	vkGetPhysicalDeviceQueueFamilyProperties(device, &queueFamilyCount, queueFamilies.data());
 
+	// TODO: this feels icky, too many strange caveats
 	for (int i = 0; i < queueFamilies.size(); i++)
 	{
 		if (queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
 		{
-			indices.graphicsQueueFamily = i;
+			indices.queueFamilies.insert_or_assign("graphicsQueueFamily", i);
+		}
+
+		VkBool32 surfaceSupport = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &surfaceSupport);
+
+		if (surfaceSupport)
+		{
+			indices.queueFamilies.insert_or_assign("surfaceQueueFamily", i);
 		}
 
 		if (indices.IsFilled()) { break; }
@@ -41,8 +52,39 @@ QueueFamilyIndices VkUtils::GetAvailableQueueFamilies(VkPhysicalDevice device)
 	return indices;
 }
 
+SwapChainSupportInfo VkUtils::QuerySwapChainCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface)
+{
+	// Surface Capabilities
+	SwapChainSupportInfo supportInfo;
+
+	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &supportInfo.surfaceCapabilities);
+
+	// Surface Formats
+	uint32_t surfaceFormatCount;
+	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &surfaceFormatCount, nullptr);
+
+	if (surfaceFormatCount != 0)
+	{
+		// We resize here because the following function requires an array of empty initialised structs, not just reserved memory
+		supportInfo.surfaceFormats.resize(surfaceFormatCount);
+		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &surfaceFormatCount, supportInfo.surfaceFormats.data());
+	}
+
+	// Present Modes
+	uint32_t presentModeCount;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
+
+	if (surfaceFormatCount != 0)
+	{
+		supportInfo.presentModes.resize(presentModeCount);
+		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, supportInfo.presentModes.data());
+	}
+
+	return supportInfo;
+}
+
 // TODO: Add more things to influence score
-uint VkUtils::RatePhysicalDeviceCompatibility(VkPhysicalDevice device)
+uint VkUtils::RatePhysicalDeviceCompatibility(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char *> deviceExtensions)
 {
 	VkPhysicalDeviceProperties deviceProperties;
 	vkGetPhysicalDeviceProperties(device, &deviceProperties);
@@ -50,16 +92,23 @@ uint VkUtils::RatePhysicalDeviceCompatibility(VkPhysicalDevice device)
 	VkPhysicalDeviceFeatures deviceFeatures;
 	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
 
-	QueueFamilyIndices qfIndices = VkUtils::GetAvailableQueueFamilies(device);
-	if (!qfIndices.NecessaryFamiliesFilled())
+	// Fail states
+	if (!AreDeviceExtensionsSupported(device, deviceExtensions))
 	{
-		throw std::runtime_error("Could not create logical device, required queue families not available");
+		return 0;
 	}
 
-	// Fail states
-    if (!deviceFeatures.geometryShader) {
+    if (!deviceFeatures.geometryShader)
+	{
         return 0;
     }
+
+	// This must occur after we've confirmed that deviceExtensions are supported
+	SwapChainSupportInfo scSupportInfo = QuerySwapChainCapabilities(device, surface);
+	if (scSupportInfo.surfaceFormats.empty() || scSupportInfo.presentModes.empty())
+	{
+		return 0;
+	}
 
 	int score = 0;
 
@@ -73,7 +122,7 @@ uint VkUtils::RatePhysicalDeviceCompatibility(VkPhysicalDevice device)
 	return score;
 }
 
-bool VkUtils::AreExtensionsSupported(std::vector<const char *> extensions)
+bool VkUtils::AreInstanceExtensionsSupported(std::vector<const char *> extensions)
 {
 	// Get extension compatibility info
 
@@ -81,33 +130,37 @@ bool VkUtils::AreExtensionsSupported(std::vector<const char *> extensions)
 	uint32_t supportedExtensionsCount;
 	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
 
-	// Create an array to store the actual info about those extensions
+	// Then, retrieve the info on all supported extensions
 	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
-
-	// Retrieve the info on all supported extensions
 	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
 
 	// Finally, check if these extensions are supported by the system
-	for (const char* extensionName : extensions)
-	{
-		bool extensionSupported = false;
+	std::unordered_set<std::string> requiredExtensions(extensions.begin(), extensions.end());
 
-		for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
-		{
-			if (strcmp(supportedExtensionProperties.extensionName, extensionName) == 0)
-			{
-				extensionSupported = true;
-				break;
-			}
-		}
-		
-		if (!extensionSupported)
-		{
-			return false;
-		}
+	for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
+	{
+		requiredExtensions.erase(supportedExtensionProperties.extensionName);
 	}
 
-	return true;
+	return requiredExtensions.empty();
+}
+
+bool VkUtils::AreDeviceExtensionsSupported(VkPhysicalDevice device, std::vector<const char *> extensions)
+{
+	uint32_t supportedExtensionsCount;
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionsCount, nullptr);
+
+	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
+	vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionsCount, supportedExtensions.data());
+
+	std::unordered_set<std::string> requiredExtensions(extensions.begin(), extensions.end());
+
+	for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
+	{
+		requiredExtensions.erase(supportedExtensionProperties.extensionName);
+	}
+
+	return requiredExtensions.empty();
 }
 
 #ifdef _DEBUG
@@ -119,26 +172,13 @@ bool VkUtils::AreExtensionsSupported(std::vector<const char *> extensions)
 		std::vector<VkLayerProperties> supportedLayers(supportedLayerCount);
 		vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
 
-		// Finally, check if these extensions are supported by the system
-		for (const char* layerName : validationLayers)
-		{
-			bool layerSupported = false;
+		std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
 
-			for (VkLayerProperties supportedLayerProperties : supportedLayers)
-			{
-				if (strcmp(supportedLayerProperties.layerName, layerName) == 0)
-				{
-					layerSupported = true;
-					break;
-				}
-			}
-			
-			if (!layerSupported)
-			{
-				return false;
-			}
+		for (VkLayerProperties supportedLayerProperties : supportedLayers)
+		{
+			requiredLayers.erase(supportedLayerProperties.layerName);
 		}
 
-		return true;
+		return requiredLayers.empty();
 	}
 #endif

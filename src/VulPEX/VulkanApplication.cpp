@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <map>
+#include <set>
 
 #include <Logger.hpp>
 
@@ -57,7 +58,7 @@ void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vec
 	vkExtensions.reserve(vkExtensions.size() + requiredExtensions.size());
 	vkExtensions.insert(vkExtensions.end(), requiredExtensions.begin(), requiredExtensions.end());
 
-	if (!VkUtils::AreExtensionsSupported(vkExtensions))
+	if (!VkUtils::AreInstanceExtensionsSupported(vkExtensions))
 	{
 		throw std::runtime_error("One or more of the extensions specified are not supported by the target system"); 
 	}
@@ -123,6 +124,15 @@ void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vec
 	#endif
 }
 
+void VulkanApplication::CreateDisplaySurface()
+{
+	VkResult createSurfaceResult = glfwCreateWindowSurface(m_vulkanInstance, m_window, nullptr, &m_displaySurface);
+	if (createSurfaceResult != VK_SUCCESS)
+	{
+		throw std::runtime_error("Creation of display surface failed with error code: " + std::to_string(createSurfaceResult));
+	}
+}
+
 void VulkanApplication::SelectPhysicalDevice()
 {
 	uint32_t physicalDeviceCount = 0;
@@ -143,7 +153,7 @@ void VulkanApplication::SelectPhysicalDevice()
 	// Choose the most suitable device
 	for (VkPhysicalDevice device : physicalDevices)
 	{
-		uint deviceScore = VkUtils::RatePhysicalDeviceCompatibility(device);
+		uint deviceScore = VkUtils::RatePhysicalDeviceCompatibility(device, m_displaySurface, m_enabledDeviceExtensions);
 		deviceCandidates.insert(std::make_pair(deviceScore, device));
 	}
 
@@ -159,18 +169,32 @@ void VulkanApplication::SelectPhysicalDevice()
 
 void VulkanApplication::CreateLogicalDevice()
 {
-	QueueFamilyIndices qfIndices = VkUtils::GetAvailableQueueFamilies(m_physicalDevice);
-
-	float queuePriority;
-	VkDeviceQueueCreateInfo queueInfo
+	QueueFamilyIndices qfIndices = VkUtils::GetAvailableQueueFamilies(m_physicalDevice, m_displaySurface);
+	if (!qfIndices.NecessaryFamiliesFilled())
 	{
-		VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,		//sType
-    	NULL,											//pNext
-    	0,												//flags
-    	qfIndices.graphicsQueueFamily.value(),			//queueFamilyIndex
-    	1,												//queueCount
-    	&queuePriority									//pQueuePriorities
-	};
+		throw std::runtime_error("Could not create logical device, required queue families not available");
+	}
+
+	std::vector<VkDeviceQueueCreateInfo> queueInfoList;
+
+	// This is a set because we *cannot* have duplicate queue family indices
+	std::set<uint32_t> uniqueQueueFamilies = { qfIndices.queueFamilies["graphicsQueueFamily"], qfIndices.queueFamilies["surfaceQueueFamily"] };
+
+	float queuePriority = 1;
+	for (uint32_t queueFamilyIndex : uniqueQueueFamilies)
+	{
+		VkDeviceQueueCreateInfo queueInfo
+		{
+			VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,		//sType
+			NULL,											//pNext
+			0,												//flags
+			queueFamilyIndex,								//queueFamilyIndex
+			1,												//queueCount
+			&queuePriority									//pQueuePriorities
+		};
+
+		queueInfoList.push_back(queueInfo);
+	}
 
 	VkPhysicalDeviceFeatures featuresInfo{};
 
@@ -187,16 +211,16 @@ void VulkanApplication::CreateLogicalDevice()
 	
 	VkDeviceCreateInfo logicalDeviceInfo
 	{
-		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,	//sType
-    	NULL,									//pNext
-    	0,										//flags
-    	1,										//queueCreateInfoCount
-    	&queueInfo,								//pQueueCreateInfos
-    	enabledLayerCount,						//enabledLayerCount
-    	enabledLayerNames,						//ppEnabledLayerNames
-    	0,										//enabledExtensionCount
-    	nullptr,								//ppEnabledExtensionNames
-    	&featuresInfo							//pEnabledFeatures
+		VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,			//sType
+    	NULL,											//pNext
+    	0,												//flags
+    	(uint32_t)queueInfoList.size(),					//queueCreateInfoCount
+    	queueInfoList.data(),							//pQueueCreateInfos
+    	enabledLayerCount,								//enabledLayerCount
+    	enabledLayerNames,								//ppEnabledLayerNames
+    	(uint32_t)m_enabledDeviceExtensions.size(),		//enabledExtensionCount
+    	m_enabledDeviceExtensions.data(),				//ppEnabledExtensionNames
+    	&featuresInfo									//pEnabledFeatures
 	};
 
 	VkResult createDeviceResult = vkCreateDevice(m_physicalDevice, &logicalDeviceInfo, nullptr, &m_logicalDevice);
@@ -205,8 +229,9 @@ void VulkanApplication::CreateLogicalDevice()
 		throw std::runtime_error("Creation of logical device failed with error code: " + std::to_string(createDeviceResult));
 	}
 
-	// TODO: make this for loop to fill a vector
-	vkGetDeviceQueue(m_logicalDevice, qfIndices.graphicsQueueFamily.value(), 0, &m_graphicsQueue);
+	vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["graphicsQueueFamily"], 0, &m_vulkanQueues["graphicsQueue"]);
+	vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["surfaceQueueFamily"], 0, &m_vulkanQueues["surfaceQueue"]);
+
 }
 
 // Public Methods
@@ -231,6 +256,9 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	// Initialise vulkan, and the debug messenger if _DEBUG define is set
 	CreateVulkanInstance(appInfo, vkExtensions, vkFlags);
 
+	// Create the GLFW surface we'll be using in our swapchain
+	CreateDisplaySurface();
+
 	// Find and select a GPU to render with
 	SelectPhysicalDevice();
 
@@ -240,13 +268,15 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 
 VulkanApplication::~VulkanApplication()
 {
-	if (m_logicalDevice != NULL) { vkDestroyDevice(m_logicalDevice, nullptr); }
+	if (m_logicalDevice != VK_NULL_HANDLE) { vkDestroyDevice(m_logicalDevice, nullptr); }
+
+	if (m_displaySurface != VK_NULL_HANDLE) { vkDestroySurfaceKHR(m_vulkanInstance, m_displaySurface, nullptr); }
 
 	#ifdef _DEBUG
-		if (m_debugMessenger != NULL) { Proxy::vkDestroyDebugUtilsMessengerEXT(m_vulkanInstance, m_debugMessenger, nullptr); }
+		if (m_debugMessenger != VK_NULL_HANDLE) { Proxy::vkDestroyDebugUtilsMessengerEXT(m_vulkanInstance, m_debugMessenger, nullptr); }
 	#endif
 
-	if (m_vulkanInstance != NULL) { vkDestroyInstance(m_vulkanInstance, nullptr); }
+	if (m_vulkanInstance != VK_NULL_HANDLE) { vkDestroyInstance(m_vulkanInstance, nullptr); }
 
 	if (m_window != nullptr) { glfwDestroyWindow(m_window); }
 
