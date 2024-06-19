@@ -9,8 +9,10 @@
 
 int main(void)
 {
+	std::map<int, int> windowHints = {{GLFW_RESIZABLE, GLFW_FALSE}};
+
 	// Create our VulkanApplication
-    VulkanApplication vkApp;
+    VulkanApplication vkApp(windowHints);
 
 	// Generate random window title
 	std::stringstream titleStringsStream(FileHandling::LoadFileToString("Assets/TitleStrings.txt"));
