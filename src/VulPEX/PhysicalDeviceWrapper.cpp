@@ -23,7 +23,7 @@ bool PhysicalDeviceWrapper::AreDeviceExtensionsSupported(VkPhysicalDevice device
 	return requiredExtensions.empty();
 }
 
-SwapChainSupportInfo PhysicalDeviceWrapper::QuerySwapChainCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface)
+SwapChainSupportInfo PhysicalDeviceWrapper::QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
 {
 	SwapChainSupportInfo scSupportInfo;
 
@@ -74,7 +74,7 @@ uint PhysicalDeviceWrapper::RatePhysicalDeviceCompatibility(VkPhysicalDevice dev
     }
 
 	// This must occur after we've confirmed that deviceExtensions are supported
-	m_supportInfo = QuerySwapChainCapabilities(device, surface);
+	m_supportInfo = QuerySwapChainSupport(device, surface);
 	if (m_supportInfo.surfaceFormats.empty() || m_supportInfo.presentModes.empty())
 	{
 		return 0;

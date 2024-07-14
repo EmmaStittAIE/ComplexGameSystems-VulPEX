@@ -93,10 +93,16 @@ void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std:
 	#else
 	m_logicalDevice.CreateLogicalDevice(m_physicalDevice.GetPhysicalDevice(), m_displaySurface.GetSurface(), m_physicalDevice.GetDeviceExtensions());
 	#endif
+
+	// Create a swapchain to present images to the screen with
+	m_swapChain.CreateSwapChain(m_logicalDevice.GetLogicalDevice(), m_displaySurface.GetSurface(), m_window.GetWindow(),
+								m_physicalDevice.GetSwapChainSupportInfo(), m_logicalDevice.GetQueueFamilyIndices());
 }
 
 VulkanApplication::~VulkanApplication()
 {
+	m_swapChain.DestroySwapChain(m_logicalDevice.GetLogicalDevice());
+
 	m_logicalDevice.DestroyLogicalDevice();
 
 	m_displaySurface.DestroySurface(m_vulkanInstance);

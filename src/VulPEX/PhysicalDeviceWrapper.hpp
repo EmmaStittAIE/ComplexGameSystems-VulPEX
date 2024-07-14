@@ -21,7 +21,7 @@ class PhysicalDeviceWrapper
 
 	// Functions
 	bool AreDeviceExtensionsSupported(VkPhysicalDevice device, std::vector<const char*> extensions) const;
-	SwapChainSupportInfo QuerySwapChainCapabilities(VkPhysicalDevice device, VkSurfaceKHR surface);
+	SwapChainSupportInfo QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface);
 
 	uint RatePhysicalDeviceCompatibility(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char *> deviceExtensions);
 

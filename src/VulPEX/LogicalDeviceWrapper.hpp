@@ -37,6 +37,8 @@ class LogicalDeviceWrapper
 	// Misc resources
 	std::unordered_map<std::string, VkQueue> m_requestedQueues;
 
+	QueueFamilyIndices m_qfIndices;
+
 	// Functions
 	QueueFamilyIndices GetAvailableQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
 
@@ -50,6 +52,10 @@ public:
 	#else
 		void CreateLogicalDevice(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions);
 	#endif
+
+	// Getters
+	VkDevice GetLogicalDevice() const { return m_logicalDevice; };
+	QueueFamilyIndices GetQueueFamilyIndices() const { return m_qfIndices; };
 
 	// Cleanup
 	void DestroyLogicalDevice();

@@ -14,6 +14,7 @@
 #include "SurfaceWrapper.hpp"
 #include "PhysicalDeviceWrapper.hpp"
 #include "LogicalDeviceWrapper.hpp"
+#include "SwapChainWrapper.hpp"
 
 class VulkanApplication
 {
@@ -24,9 +25,11 @@ class VulkanApplication
 		DebugMessengerWrapper m_debugMessenger;
 	#endif
 
+	SurfaceWrapper m_displaySurface;
 	PhysicalDeviceWrapper m_physicalDevice;
 	LogicalDeviceWrapper m_logicalDevice;
-	SurfaceWrapper m_displaySurface;
+
+	SwapChainWrapper m_swapChain;
 
 	// GLFW resources
 	WindowWrapper m_window;

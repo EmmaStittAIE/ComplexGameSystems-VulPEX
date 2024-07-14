@@ -49,8 +49,8 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 #ifdef _DEBUG
 	void LogicalDeviceWrapper::CreateLogicalDevice(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions, std::vector<const char*> validationLayers)
 	{
-		QueueFamilyIndices qfIndices = GetAvailableQueueFamilies(device, surface);
-		if (!qfIndices.NecessaryFamiliesFilled())
+		m_qfIndices = GetAvailableQueueFamilies(device, surface);
+		if (!m_qfIndices.NecessaryFamiliesFilled())
 		{
 			throw std::runtime_error("Could not create logical device, required queue families not available");
 		}
@@ -58,7 +58,7 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		std::vector<VkDeviceQueueCreateInfo> queueInfoList;
 
 		// This is a set because we *cannot* have duplicate queue family indices
-		std::set<uint32_t> uniqueQueueFamilies = { qfIndices.queueFamilies["graphicsQueueFamily"], qfIndices.queueFamilies["surfaceQueueFamily"] };
+		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies["graphicsQueueFamily"], m_qfIndices.queueFamilies["surfaceQueueFamily"] };
 
 		float queuePriority = 1;
 		for (uint32_t queueFamilyIndex : uniqueQueueFamilies)
@@ -91,16 +91,16 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		
 		VkDeviceCreateInfo logicalDeviceInfo
 		{
-			VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,			//sType
-			NULL,											//pNext
-			0,												//flags
-			(uint32_t)queueInfoList.size(),					//queueCreateInfoCount
-			queueInfoList.data(),							//pQueueCreateInfos
-			enabledLayerCount,								//enabledLayerCount
-			enabledLayerNames,								//ppEnabledLayerNames
+			VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,	//sType
+			NULL,									//pNext
+			0,										//flags
+			(uint32_t)queueInfoList.size(),			//queueCreateInfoCount
+			queueInfoList.data(),					//pQueueCreateInfos
+			enabledLayerCount,						//enabledLayerCount
+			enabledLayerNames,						//ppEnabledLayerNames
 			(uint32_t)deviceExtensions.size(),		//enabledExtensionCount
 			deviceExtensions.data(),				//ppEnabledExtensionNames
-			&featuresInfo									//pEnabledFeatures
+			&featuresInfo							//pEnabledFeatures
 		};
 
 		VkResult createDeviceResult = vkCreateDevice(device, &logicalDeviceInfo, nullptr, &m_logicalDevice);
@@ -109,14 +109,14 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 			throw std::runtime_error("Creation of logical device failed with error code: " + std::to_string(createDeviceResult));
 		}
 
-		vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["graphicsQueueFamily"], 0, &m_requestedQueues["graphicsQueue"]);
-		vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["surfaceQueueFamily"], 0, &m_requestedQueues["surfaceQueue"]);
+		vkGetDeviceQueue(m_logicalDevice, m_qfIndices.queueFamilies["graphicsQueueFamily"], 0, &m_requestedQueues["graphicsQueue"]);
+		vkGetDeviceQueue(m_logicalDevice, m_qfIndices.queueFamilies["surfaceQueueFamily"], 0, &m_requestedQueues["surfaceQueue"]);
 	}
 #else
 	void LogicalDeviceWrapper::CreateLogicalDevice(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions)
 	{
-		QueueFamilyIndices qfIndices = GetAvailableQueueFamilies(device, surface);
-		if (!qfIndices.NecessaryFamiliesFilled())
+		QueueFamilyIndices m_qfIndices = GetAvailableQueueFamilies(device, surface);
+		if (!m_qfIndices.NecessaryFamiliesFilled())
 		{
 			throw std::runtime_error("Could not create logical device, required queue families not available");
 		}
@@ -124,7 +124,7 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		std::vector<VkDeviceQueueCreateInfo> queueInfoList;
 
 		// This is a set because we *cannot* have duplicate queue family indices
-		std::set<uint32_t> uniqueQueueFamilies = { qfIndices.queueFamilies["graphicsQueueFamily"], qfIndices.queueFamilies["surfaceQueueFamily"] };
+		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies["graphicsQueueFamily"], m_qfIndices.queueFamilies["surfaceQueueFamily"] };
 
 		float queuePriority = 1;
 		for (uint32_t queueFamilyIndex : uniqueQueueFamilies)
@@ -164,8 +164,8 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 			throw std::runtime_error("Creation of logical device failed with error code: " + std::to_string(createDeviceResult));
 		}
 
-		vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["graphicsQueueFamily"], 0, &m_requestedQueues["graphicsQueue"]);
-		vkGetDeviceQueue(m_logicalDevice, qfIndices.queueFamilies["surfaceQueueFamily"], 0, &m_requestedQueues["surfaceQueue"]);
+		vkGetDeviceQueue(m_logicalDevice, m_qfIndices.queueFamilies["graphicsQueueFamily"], 0, &m_requestedQueues["graphicsQueue"]);
+		vkGetDeviceQueue(m_logicalDevice, m_qfIndices.queueFamilies["surfaceQueueFamily"], 0, &m_requestedQueues["surfaceQueue"]);
 	}
 #endif
 
