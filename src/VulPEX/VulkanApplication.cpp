@@ -1,5 +1,7 @@
 #include "VulkanApplication.hpp"
 
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+
 #include <vector>
 #include <map>
 #include <set>
@@ -57,6 +59,8 @@ void VulkanApplication::CreateVulkanInstance(vk::ApplicationInfo appInfo, std::v
 // Public Methods
 void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags)
 {
+	VULKAN_HPP_DEFAULT_DISPATCHER.init();
+
     // Create window
     m_window.CreateWindow(winInfo);
 
@@ -69,6 +73,7 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, st
 
 	// Initialise vulkan
 	CreateVulkanInstance(appInfo, vkExtensions, vkFlags);
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(m_vulkanInstance);
 
 	// Initialise debug messenger
 	#ifdef _DEBUG
@@ -88,6 +93,8 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, st
 	#else
 	m_logicalDevice.CreateLogicalDevice(m_physicalDevice.GetPhysicalDevice(), m_displaySurface.GetSurface(), m_physicalDevice.GetDeviceExtensions());
 	#endif
+
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(m_logicalDevice.GetLogicalDevice());
 
 	// Create a swapchain to present images to the screen with
 	m_swapChain.CreateSwapChain(m_logicalDevice.GetLogicalDevice(), m_displaySurface.GetSurface(), m_window.GetWindow(),

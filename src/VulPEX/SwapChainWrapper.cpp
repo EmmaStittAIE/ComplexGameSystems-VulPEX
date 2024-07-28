@@ -136,7 +136,7 @@ void SwapChainWrapper::CreateSwapChain(vk::Device device, vk::SurfaceKHR surface
 		nullptr												//oldSwapchain
 	);
 
-	device.createSwapchainKHR(swapChainInfo);
+	m_swapChain = device.createSwapchainKHR(swapChainInfo);
 
 	// Retrieve references to swap chain images
 	m_swapChainImages = device.getSwapchainImagesKHR(m_swapChain);

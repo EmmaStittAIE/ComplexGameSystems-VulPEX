@@ -23,14 +23,7 @@ std::vector<const char*> VkUtils::GetRequiredExtensions()
 bool VkUtils::AreInstanceExtensionsSupported(std::vector<const char *> extensions)
 {
 	// Get extension compatibility info
-
-	// First, find out how many supported extensions there are
-	uint32_t supportedExtensionsCount;
-	vk::enumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
-
-	// Then, retrieve the info on all supported extensions
-	std::vector<vk::ExtensionProperties> supportedExtensions(supportedExtensionsCount);
-	vk::enumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
+	std::vector<vk::ExtensionProperties> supportedExtensions = vk::enumerateInstanceExtensionProperties();
 
 	// Finally, check if these extensions are supported by the system
 	std::unordered_set<std::string> requiredExtensions(extensions.begin(), extensions.end());

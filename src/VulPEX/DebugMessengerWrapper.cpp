@@ -47,11 +47,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
 // Private Functions
 bool DebugMessengerWrapper::AreValidationLayersSupported(std::vector<const char*> validationLayers)
 {
-	uint32_t supportedLayerCount;
-	vk::enumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
-
-	std::vector<vk::LayerProperties> supportedLayers(supportedLayerCount);
-	vk::enumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
+	std::vector<vk::LayerProperties> supportedLayers = vk::enumerateInstanceLayerProperties();
 
 	std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
 
@@ -107,7 +103,7 @@ void DebugMessengerWrapper::SetUpDebugCallback()
 
 void DebugMessengerWrapper::LinkDebugCallback(vk::Instance instance)
 {
-	m_debugMessenger = instance.createDebugUtilsMessengerEXT(m_debugMessengerInfo);
+	m_debugMessenger = instance.createDebugUtilsMessengerEXT(m_debugMessengerInfo, nullptr, VULKAN_HPP_DEFAULT_DISPATCHER);
 }
 
 void DebugMessengerWrapper::DestroyDebugMessenger(vk::Instance instance)
