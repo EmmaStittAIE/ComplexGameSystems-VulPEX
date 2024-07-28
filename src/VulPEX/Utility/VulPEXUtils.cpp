@@ -14,7 +14,7 @@ std::vector<const char*> VkUtils::GetRequiredExtensions()
 	std::vector<const char*> requiredExtensions(glfwExtensions, glfwExtensions + glfwExtensionCount);
 
 	#ifdef _DEBUG
-		requiredExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+		requiredExtensions.push_back(vk::EXTDebugUtilsExtensionName);
 	#endif
 
 	return requiredExtensions;
@@ -26,16 +26,16 @@ bool VkUtils::AreInstanceExtensionsSupported(std::vector<const char *> extension
 
 	// First, find out how many supported extensions there are
 	uint32_t supportedExtensionsCount;
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
+	vk::enumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, nullptr);
 
 	// Then, retrieve the info on all supported extensions
-	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
-	vkEnumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
+	std::vector<vk::ExtensionProperties> supportedExtensions(supportedExtensionsCount);
+	vk::enumerateInstanceExtensionProperties(nullptr, &supportedExtensionsCount, supportedExtensions.data());
 
 	// Finally, check if these extensions are supported by the system
 	std::unordered_set<std::string> requiredExtensions(extensions.begin(), extensions.end());
 
-	for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
+	for (vk::ExtensionProperties supportedExtensionProperties : supportedExtensions)
 	{
 		requiredExtensions.erase(supportedExtensionProperties.extensionName);
 	}

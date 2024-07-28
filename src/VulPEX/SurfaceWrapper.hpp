@@ -5,14 +5,14 @@
 
 class SurfaceWrapper
 {
-	VkSurfaceKHR m_displaySurface = VK_NULL_HANDLE;
+	vk::SurfaceKHR m_displaySurface = nullptr;
 
 public:
-	void CreateDisplaySurface(VkInstance instance, GLFWwindow* window);
+	void CreateDisplaySurface(vk::Instance instance, GLFWwindow* window);
 
 	// Getters
-	VkSurfaceKHR GetSurface() const { return m_displaySurface; };
+	vk::SurfaceKHR GetSurface() const { return m_displaySurface; };
 
 	// Cleanup
-	void DestroySurface(VkInstance instance);
+	void DestroySurface(vk::Instance instance);
 };

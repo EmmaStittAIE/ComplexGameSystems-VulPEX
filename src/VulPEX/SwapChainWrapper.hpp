@@ -11,30 +11,31 @@
 class SwapChainWrapper
 {
 	// Vulkan resources
-	VkSwapchainKHR m_swapChain = VK_NULL_HANDLE;
-	std::vector<VkImage> m_swapChainImages;
+	vk::SwapchainKHR m_swapChain = VK_NULL_HANDLE;
+	std::vector<vk::Image> m_swapChainImages;
+	std::vector<vk::ImageView> m_imageViews;
 
-	VkFormat m_imageFormat;
-	VkExtent2D m_extent;
+	vk::Format m_imageFormat;
+	vk::Extent2D m_extent;
 
-	std::vector<VkSurfaceFormatKHR> m_preferredFormats;
-	std::vector<VkPresentModeKHR> m_preferredPresentModes;
+	std::vector<vk::SurfaceFormatKHR> m_preferredFormats;
+	std::vector<vk::PresentModeKHR> m_preferredPresentModes;
 
 	// Functions
-	VkSurfaceFormatKHR ChooseSurfaceFormat(std::vector<VkSurfaceFormatKHR> availableFormats);
-	VkPresentModeKHR ChoosePresentMode(std::vector<VkPresentModeKHR> availablePresentModes);
-	VkExtent2D ChooseExtent(VkSurfaceCapabilitiesKHR surfaceCapabilities, GLFWwindow* window);
+	vk::SurfaceFormatKHR ChooseSurfaceFormat(std::vector<vk::SurfaceFormatKHR> availableFormats);
+	vk::PresentModeKHR ChoosePresentMode(std::vector<vk::PresentModeKHR> availablePresentModes);
+	vk::Extent2D ChooseExtent(vk::SurfaceCapabilitiesKHR surfaceCapabilities, GLFWwindow* window);
 
 public:
 	SwapChainWrapper();
 
 	// Surface formats and present modes should be ordered in order of preference, from most preferred to least preferred
-	void ConfigureSwapChain(std::vector<VkSurfaceFormatKHR> preferredSurfaceFormats, std::vector<VkPresentModeKHR> preferredPresentModes);
-	void CreateSwapChain(VkDevice device, VkSurfaceKHR surface, GLFWwindow* window, SwapChainSupportInfo supportInfo, QueueFamilyIndices qfIndices);
+	void ConfigureSwapChain(std::vector<vk::SurfaceFormatKHR> preferredSurfaceFormats, std::vector<vk::PresentModeKHR> preferredPresentModes);
+	void CreateSwapChain(vk::Device device, vk::SurfaceKHR surface, GLFWwindow* window, SwapChainSupportInfo supportInfo, QueueFamilyIndices qfIndices);
 
 	// Getters
-	std::vector<VkImage> GetSwapChainImages() const { return m_swapChainImages; };
+	std::vector<vk::Image> GetSwapChainImages() const { return m_swapChainImages; };
 
 	// Cleanup
-	void DestroySwapChain(VkDevice device);
+	void DestroySwapChain(vk::Device device);
 };

@@ -32,29 +32,29 @@ struct QueueFamilyIndices
 class LogicalDeviceWrapper
 {
 	// Vulkan resources
-	VkDevice m_logicalDevice = VK_NULL_HANDLE;
+	vk::Device m_logicalDevice = nullptr;
 
 	// Misc resources
-	std::unordered_map<std::string, VkQueue> m_requestedQueues;
+	std::unordered_map<std::string, vk::Queue> m_requestedQueues;
 
 	QueueFamilyIndices m_qfIndices;
 
 	// Functions
-	QueueFamilyIndices GetAvailableQueueFamilies(VkPhysicalDevice device, VkSurfaceKHR surface);
+	QueueFamilyIndices GetAvailableQueueFamilies(vk::PhysicalDevice device, vk::SurfaceKHR surface);
 
 public:
 	LogicalDeviceWrapper();
 
-	void ConfigureLogicalDevice(std::unordered_map<std::string, VkQueue> queues);
+	void ConfigureLogicalDevice(std::unordered_map<std::string, vk::Queue> queues);
 	
 	#ifdef _DEBUG
-		void CreateLogicalDevice(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions, std::vector<const char*> validationLayers);
+		void CreateLogicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char*> deviceExtensions, std::vector<const char*> validationLayers);
 	#else
-		void CreateLogicalDevice(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char*> deviceExtensions);
+		void CreateLogicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char*> deviceExtensions);
 	#endif
 
 	// Getters
-	VkDevice GetLogicalDevice() const { return m_logicalDevice; };
+	vk::Device GetLogicalDevice() const { return m_logicalDevice; };
 	QueueFamilyIndices GetQueueFamilyIndices() const { return m_qfIndices; };
 
 	// Cleanup

@@ -5,17 +5,13 @@
 
 #include "Utility/VulPEXUtils.hpp"
 
-bool PhysicalDeviceWrapper::AreDeviceExtensionsSupported(VkPhysicalDevice device, std::vector<const char *> extensions) const
+bool PhysicalDeviceWrapper::AreDeviceExtensionsSupported(vk::PhysicalDevice device, std::vector<const char *> extensions) const
 {
-	uint32_t supportedExtensionsCount;
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionsCount, nullptr);
-
-	std::vector<VkExtensionProperties> supportedExtensions(supportedExtensionsCount);
-	vkEnumerateDeviceExtensionProperties(device, nullptr, &supportedExtensionsCount, supportedExtensions.data());
+	std::vector<vk::ExtensionProperties> supportedExtensions = device.enumerateDeviceExtensionProperties();
 
 	std::unordered_set<std::string> requiredExtensions(extensions.begin(), extensions.end());
 
-	for (VkExtensionProperties supportedExtensionProperties : supportedExtensions)
+	for (vk::ExtensionProperties supportedExtensionProperties : supportedExtensions)
 	{
 		requiredExtensions.erase(supportedExtensionProperties.extensionName);
 	}
@@ -23,44 +19,27 @@ bool PhysicalDeviceWrapper::AreDeviceExtensionsSupported(VkPhysicalDevice device
 	return requiredExtensions.empty();
 }
 
-SwapChainSupportInfo PhysicalDeviceWrapper::QuerySwapChainSupport(VkPhysicalDevice device, VkSurfaceKHR surface)
+SwapChainSupportInfo PhysicalDeviceWrapper::QuerySwapChainSupport(vk::PhysicalDevice device, vk::SurfaceKHR surface)
 {
 	SwapChainSupportInfo scSupportInfo;
 
 	// Surface Capabilities
-	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &scSupportInfo.surfaceCapabilities);
+	scSupportInfo.surfaceCapabilities = device.getSurfaceCapabilitiesKHR(surface);
 
 	// Surface Formats
-	uint32_t surfaceFormatCount;
-	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &surfaceFormatCount, nullptr);
-
-	if (surfaceFormatCount != 0)
-	{
-		// We resize here because the following function requires an array of empty initialised structs, not just reserved memory
-		scSupportInfo.surfaceFormats.resize(surfaceFormatCount);
-		vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &surfaceFormatCount, scSupportInfo.surfaceFormats.data());
-	}
+	scSupportInfo.surfaceFormats = device.getSurfaceFormatsKHR(surface);
 
 	// Present Modes
-	uint32_t presentModeCount;
-	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, nullptr);
-
-	if (presentModeCount != 0)
-	{
-		scSupportInfo.presentModes.resize(presentModeCount);
-		vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModeCount, scSupportInfo.presentModes.data());
-	}
+	scSupportInfo.presentModes = device.getSurfacePresentModesKHR(surface);
 
 	return scSupportInfo;
 }
 
-uint PhysicalDeviceWrapper::RatePhysicalDeviceCompatibility(VkPhysicalDevice device, VkSurfaceKHR surface, std::vector<const char *> deviceExtensions)
+uint PhysicalDeviceWrapper::RatePhysicalDeviceCompatibility(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char *> deviceExtensions)
 {
-	VkPhysicalDeviceProperties deviceProperties;
-	vkGetPhysicalDeviceProperties(device, &deviceProperties);
+	vk::PhysicalDeviceProperties deviceProperties = device.getProperties();
 
-	VkPhysicalDeviceFeatures deviceFeatures;
-	vkGetPhysicalDeviceFeatures(device, &deviceFeatures);
+	vk::PhysicalDeviceFeatures deviceFeatures = device.getFeatures();
 
 	// Fail states
 	if (!AreDeviceExtensionsSupported(device, deviceExtensions))
@@ -82,7 +61,7 @@ uint PhysicalDeviceWrapper::RatePhysicalDeviceCompatibility(VkPhysicalDevice dev
 
 	int score = 0;
 
-	if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
+	if (deviceProperties.deviceType == vk::PhysicalDeviceType::eDiscreteGpu)
 	{
 		score += 1000;
 	}
@@ -94,7 +73,7 @@ uint PhysicalDeviceWrapper::RatePhysicalDeviceCompatibility(VkPhysicalDevice dev
 
 PhysicalDeviceWrapper::PhysicalDeviceWrapper()
 {
-	m_enabledDeviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+	m_enabledDeviceExtensions = {vk::KHRSwapchainExtensionName};
 }
 
 void PhysicalDeviceWrapper::ConfigurePhysicalDevice(std::vector<const char *> deviceExtensions)
@@ -102,24 +81,20 @@ void PhysicalDeviceWrapper::ConfigurePhysicalDevice(std::vector<const char *> de
 	m_enabledDeviceExtensions = deviceExtensions;
 }
 
-void PhysicalDeviceWrapper::SelectDevice(VkInstance instance, VkSurfaceKHR surface)
+void PhysicalDeviceWrapper::SelectDevice(vk::Instance instance, vk::SurfaceKHR surface)
 {
-	uint32_t physicalDeviceCount = 0;
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, nullptr);
+	std::vector<vk::PhysicalDevice> physicalDevices = instance.enumeratePhysicalDevices();
 
-	if (physicalDeviceCount == 0)
+	if (physicalDevices.size() == 0)
 	{
 		throw std::runtime_error("Could not continue, as no Vulkan-compatible GPUs were found"); 
 	}
 
-	std::vector<VkPhysicalDevice> physicalDevices(physicalDeviceCount);
-	vkEnumeratePhysicalDevices(instance, &physicalDeviceCount, physicalDevices.data());
-
 	// Just learned about these, they seem pretty cool for avoiding sorting a map manually
-	std::multimap<uint, VkPhysicalDevice> deviceCandidates;
+	std::multimap<uint, vk::PhysicalDevice> deviceCandidates;
 
 	// Choose the most suitable device
-	for (VkPhysicalDevice device : physicalDevices)
+	for (vk::PhysicalDevice device : physicalDevices)
 	{
 		uint deviceScore = RatePhysicalDeviceCompatibility(device, surface, m_enabledDeviceExtensions);
 		deviceCandidates.insert(std::make_pair(deviceScore, device));

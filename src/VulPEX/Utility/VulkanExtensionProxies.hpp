@@ -6,6 +6,8 @@ namespace Proxy
 {
 	// Copied from https://vulkan-tutorial.com/Drawing_a_triangle/Setup/Validation_layers
 	// It works well, and I wouldn't know how to make it better, so I just took this one wholecloth
+	// I can't figure out how to do this the vulkan.hpp way? So I've just left it like this for now
+	// TODO: Do this the vulkan.hpp way
 	#ifdef _DEBUG
 		VkResult vkCreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator,
 											VkDebugUtilsMessengerEXT* pDebugMessenger)

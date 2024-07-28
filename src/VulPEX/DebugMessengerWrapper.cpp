@@ -48,14 +48,14 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugMessageCallback (
 bool DebugMessengerWrapper::AreValidationLayersSupported(std::vector<const char*> validationLayers)
 {
 	uint32_t supportedLayerCount;
-	vkEnumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
+	vk::enumerateInstanceLayerProperties(&supportedLayerCount, nullptr);
 
-	std::vector<VkLayerProperties> supportedLayers(supportedLayerCount);
-	vkEnumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
+	std::vector<vk::LayerProperties> supportedLayers(supportedLayerCount);
+	vk::enumerateInstanceLayerProperties(&supportedLayerCount, supportedLayers.data());
 
 	std::unordered_set<std::string> requiredLayers(validationLayers.begin(), validationLayers.end());
 
-	for (VkLayerProperties supportedLayerProperties : supportedLayers)
+	for (vk::LayerProperties supportedLayerProperties : supportedLayers)
 	{
 		requiredLayers.erase(supportedLayerProperties.layerName);
 	}
@@ -65,16 +65,16 @@ bool DebugMessengerWrapper::AreValidationLayersSupported(std::vector<const char*
 
 DebugMessengerWrapper::DebugMessengerWrapper()
 {
-	m_severitiesToLog = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-	m_messageTypesToLog = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-						  VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+	m_severitiesToLog = vk::DebugUtilsMessageSeverityFlagBitsEXT::eWarning | vk::DebugUtilsMessageSeverityFlagBitsEXT::eError;
+	m_messageTypesToLog = vk::DebugUtilsMessageTypeFlagBitsEXT::eGeneral | vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation |
+						  vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance;
 	m_enabledValidationLayers = { "VK_LAYER_KHRONOS_validation" };
 
 	m_debugCallback = DebugMessageCallback;
 }
 
 // Public Functions
-void DebugMessengerWrapper::ConfigureMessenger(VkDebugUtilsMessageSeverityFlagsEXT severitiesToLog, VkDebugUtilsMessageTypeFlagsEXT messageTypesToLog,
+void DebugMessengerWrapper::ConfigureMessenger(vk::DebugUtilsMessageSeverityFlagsEXT severitiesToLog, vk::DebugUtilsMessageTypeFlagsEXT messageTypesToLog,
 											   std::vector<const char*> validationLayers)
 {
 	m_severitiesToLog = severitiesToLog;
@@ -94,33 +94,25 @@ void DebugMessengerWrapper::SetUpDebugCallback()
 		throw std::runtime_error("One or more of the validation layers specified are not supported by the target system"); 
 	}
 
-	VkDebugUtilsMessengerCreateInfoEXT debugMessengerInfo
-	{
-		VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,	//sType
-		NULL,														//pNext
-		0,															//flags
+	vk::DebugUtilsMessengerCreateInfoEXT debugMessengerInfo(
+		{},															//flags
 		m_severitiesToLog,											//messageSeverity
 		m_messageTypesToLog,										//messageType
 		DebugMessageCallback,										//pfnUserCallback
 		nullptr														//pUserData
-	};
+	);
 
 	m_debugMessengerInfo = debugMessengerInfo;
 }
 
-void DebugMessengerWrapper::LinkDebugCallback(VkInstance instance)
+void DebugMessengerWrapper::LinkDebugCallback(vk::Instance instance)
 {
-	// Create debug callback
-	VkResult createDebugMessengerResult = Proxy::vkCreateDebugUtilsMessengerEXT(instance, &m_debugMessengerInfo, nullptr, &m_debugMessenger);
-	if (createDebugMessengerResult != VK_SUCCESS)
-	{
-		throw std::runtime_error("Creation of debug messenger failed with error code: " + std::to_string(createDebugMessengerResult)); 
-	}
+	m_debugMessenger = instance.createDebugUtilsMessengerEXT(m_debugMessengerInfo);
 }
 
-void DebugMessengerWrapper::DestroyDebugMessenger(VkInstance instance)
+void DebugMessengerWrapper::DestroyDebugMessenger(vk::Instance instance)
 {
-	if (m_debugMessenger != VK_NULL_HANDLE) { Proxy::vkDestroyDebugUtilsMessengerEXT(instance, m_debugMessenger, nullptr); }
+	if (m_debugMessenger != nullptr) { Proxy::vkDestroyDebugUtilsMessengerEXT(instance, m_debugMessenger, nullptr); }
 }
 
 #endif

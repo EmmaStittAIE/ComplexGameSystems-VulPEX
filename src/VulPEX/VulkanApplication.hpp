@@ -19,7 +19,7 @@
 class VulkanApplication
 {
     // Vulkan resources
-    VkInstance m_vulkanInstance = VK_NULL_HANDLE;
+    vk::Instance m_vulkanInstance = nullptr;
 
 	#ifdef _DEBUG
 		DebugMessengerWrapper m_debugMessenger;
@@ -30,18 +30,18 @@ class VulkanApplication
 	LogicalDeviceWrapper m_logicalDevice;
 
 	SwapChainWrapper m_swapChain;
-
+	
 	// GLFW resources
 	WindowWrapper m_window;
 
 	// Helper functions
-	void CreateVulkanInstance(VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
+	void CreateVulkanInstance(vk::ApplicationInfo appInfo, std::vector<const char *> vkExtensions, vk::InstanceCreateFlags vkFlags);
 
 public:
     VulkanApplication(std::map<int, int> windowHints)
 		: m_window(windowHints) {};
 
-	void Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags);
+	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
 
 	// Getters
 	#ifdef _DEBUG

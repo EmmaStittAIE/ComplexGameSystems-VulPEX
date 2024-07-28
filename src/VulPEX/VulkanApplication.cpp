@@ -10,7 +10,7 @@
 
 // Private Methods
 
-void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vector<const char *> vkExtensions, VkInstanceCreateFlags vkFlags)
+void VulkanApplication::CreateVulkanInstance(vk::ApplicationInfo appInfo, std::vector<const char *> vkExtensions, vk::InstanceCreateFlags vkFlags)
 {
 	// Get Extension Info
 	std::vector<const char*> requiredExtensions = VkUtils::GetRequiredExtensions();
@@ -26,8 +26,8 @@ void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vec
 
 	// Validation layers
 	uint32_t enabledLayerCount = 0;
-	const char* const* enabledLayerNames = NULL;
-	const VkDebugUtilsMessengerCreateInfoEXT* nextPointer = NULL;
+	const char* const* enabledLayerNames = nullptr;
+	const vk::DebugUtilsMessengerCreateInfoEXT* nextPointer = nullptr;
 
 	#ifdef _DEBUG
 		std::vector<const char *> validationLayers = m_debugMessenger.GetValidationLayers();
@@ -39,28 +39,23 @@ void VulkanApplication::CreateVulkanInstance(VkApplicationInfo appInfo, std::vec
 	#endif
 
 	// Configure Instance Info
-	VkInstanceCreateInfo instanceInfo
-	{
-		VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,	//sType
-		nextPointer,							//pNext
+	vk::InstanceCreateInfo instanceInfo(
 		vkFlags,								//flags
 		&appInfo,								//pApplicationInfo
 		enabledLayerCount,						//enabledLayerCount
 		enabledLayerNames,						//ppEnabledLayerNames
 		(uint32_t)vkExtensions.size(),			//enabledExtensionCount
-		vkExtensions.data()						//ppEnabledExtensionNames
-	};
+		vkExtensions.data(),					//ppEnabledExtensionNames
+		nextPointer								//pNext
+	);
 
-	// Create info, custom memory allocator callback, pointer to instance
-	VkResult createInstanceResult = vkCreateInstance(&instanceInfo, nullptr, &m_vulkanInstance);
-	if (createInstanceResult != VK_SUCCESS)
-	{
-		throw std::runtime_error("Creation of Vulkan instance failed with error code: " + std::to_string(createInstanceResult));
-	}
+	// Vulkan.hpp automatically throws exceptions, so we don't have to do that manually anymore
+	// This almost feels too simple...
+	m_vulkanInstance = vk::createInstance(instanceInfo);
 }
 
 // Public Methods
-void VulkanApplication::Init(WindowInfo winInfo, VkApplicationInfo appInfo, std::vector<const char*> vkExtensions, VkInstanceCreateFlags vkFlags)
+void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags)
 {
     // Create window
     m_window.CreateWindow(winInfo);
@@ -111,7 +106,7 @@ VulkanApplication::~VulkanApplication()
 		m_debugMessenger.DestroyDebugMessenger(m_vulkanInstance);
 	#endif
 
-	if (m_vulkanInstance != VK_NULL_HANDLE) { vkDestroyInstance(m_vulkanInstance, nullptr); }
+	if (m_vulkanInstance != nullptr) { m_vulkanInstance.destroy(); }
 
 	m_window.DestroyWindow();
 

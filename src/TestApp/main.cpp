@@ -37,23 +37,19 @@ int main(void)
 	};
 
 	// Configure App Info
-    VkApplicationInfo appInfo
-    {
-        VK_STRUCTURE_TYPE_APPLICATION_INFO,		//sType
-        NULL,									//pNext
-        "Test App",								//pApplicationName
+    vk::ApplicationInfo appInfo(
+		"Test App",								//pApplicationName
         VK_MAKE_VERSION(0, 0, 1),				//applicationVersion
-		NULL,									//pEngineName
+		nullptr,								//pEngineName
 		0,										//engineVersion
 		VK_API_VERSION_1_3						//apiVersion
-    };
+	);
 
 	std::vector<const char *> extensions;
 
-	// TODO: better error handling. Currently we just... relay the info in the exception and end the program. Better than nothing, but not great
     try
     {
-		vkApp.Init(winInfo, appInfo, extensions, 0);
+		vkApp.Init(winInfo, appInfo, extensions, {});
 
         while (vkApp.IsRunning())
     	{
@@ -65,6 +61,7 @@ int main(void)
     }
     catch (const std::exception& ex)
     {
+		// In an actual application, it would be better to have this display in a popup somewhere (maybe a bug report dialogue), save to a log file, etc.
         Logger::Log( { "Application encountered an exception: ", ex.what() }, LogType::Error );
         return 1;
     }
