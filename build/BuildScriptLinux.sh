@@ -280,9 +280,18 @@ echo ""
 echo "---Building Projects---"
 echo ""
 
+# Shaders
+echo "Compiling shaders..."
+cd ../working/Assets/Shaders/
+if ! ./CompileShaders.sh; then
+    FailedPremake
+fi
+
+echo "Shaders compiled"
+
 # Premake
 echo "Running premake..."
-cd ..
+cd ../../..
 
 if ! premake5 gmake2; then
     FailedPremake

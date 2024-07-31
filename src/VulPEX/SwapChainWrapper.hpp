@@ -35,6 +35,8 @@ public:
 
 	// Getters
 	std::vector<vk::Image> GetSwapChainImages() const { return m_swapChainImages; };
+	vk::Format GetFormat() const { return m_imageFormat; };
+	vk::Extent2D GetExtent() const { return m_extent; };
 
 	// Cleanup
 	void DestroySwapChain(vk::Device device);

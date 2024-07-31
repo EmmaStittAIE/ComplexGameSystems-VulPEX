@@ -57,7 +57,7 @@ void VulkanApplication::CreateVulkanInstance(vk::ApplicationInfo appInfo, std::v
 }
 
 // Public Methods
-void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags)
+void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags)
 {
 	VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
@@ -99,10 +99,15 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, st
 	// Create a swapchain to present images to the screen with
 	m_swapChain.CreateSwapChain(m_logicalDevice.GetLogicalDevice(), m_displaySurface.GetSurface(), m_window.GetWindow(),
 								m_physicalDevice.GetSwapChainSupportInfo(), m_logicalDevice.GetQueueFamilyIndices());
+	
+	// Create a graphics pipeline to run shaders and draw our image
+	m_graphicsPipeline.CreateGraphicsPipeline(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat());
 }
 
 VulkanApplication::~VulkanApplication()
 {
+	m_graphicsPipeline.DestroyPipeline(m_logicalDevice.GetLogicalDevice());
+
 	m_swapChain.DestroySwapChain(m_logicalDevice.GetLogicalDevice());
 
 	m_logicalDevice.DestroyLogicalDevice();

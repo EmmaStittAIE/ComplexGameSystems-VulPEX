@@ -7,7 +7,7 @@
 #include <FileHandling.hpp>
 #include <Rand.hpp>
 
-int main(void)
+int entryPoint()
 {
 	std::map<int, int> windowHints = {{GLFW_RESIZABLE, GLFW_FALSE}};
 
@@ -45,24 +45,43 @@ int main(void)
 		VK_API_VERSION_1_3						//apiVersion
 	);
 
+	ShaderInfo shaderInfo
+	{
+		FileHandling::LoadFileToByteArray("Assets/Shaders/SPIR-V/defaultVert.spv"),	//vertBytecode
+		FileHandling::LoadFileToByteArray("Assets/Shaders/SPIR-V/defaultFrag.spv")	//fragBytecode
+	};
+
 	std::vector<const char *> extensions;
 
-    try
+    vkApp.Init(winInfo, appInfo, shaderInfo, extensions, {});
+
+    while (vkApp.IsRunning())
     {
-		vkApp.Init(winInfo, appInfo, extensions, {});
+    	//Render();
+		
+    	// Events (input, etc.)
+    	glfwPollEvents();
+    }
 
-        while (vkApp.IsRunning())
-    	{
-        	//Render();
+	return 0;
+}
 
-        	// Events (input, etc.)
-        	glfwPollEvents();
-    	}
+int main(void)
+{
+	try
+    {
+		// In an actual application, this would be where I'd instantiate and run an application object of some kind
+		return entryPoint();
     }
     catch (const std::exception& ex)
     {
 		// In an actual application, it would be better to have this display in a popup somewhere (maybe a bug report dialogue), save to a log file, etc.
-        Logger::Log( { "Application encountered an exception: ", ex.what() }, LogType::Error );
+        Logger::Log( { "Application encountered an exception: ", ex.what() }, LogType::Fatal );
         return 1;
     }
+	catch(...)
+	{
+		Logger::Log( { "Application encountered an unknown error." }, LogType::Fatal );
+		return 1;
+	}
 }

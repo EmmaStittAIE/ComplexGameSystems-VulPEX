@@ -16,6 +16,7 @@
 #include "PhysicalDeviceWrapper.hpp"
 #include "LogicalDeviceWrapper.hpp"
 #include "SwapChainWrapper.hpp"
+#include "GraphicsPipelineWrapper.hpp"
 
 class VulkanApplication
 {
@@ -27,10 +28,13 @@ class VulkanApplication
 	#endif
 
 	SurfaceWrapper m_displaySurface;
+
 	PhysicalDeviceWrapper m_physicalDevice;
 	LogicalDeviceWrapper m_logicalDevice;
 
 	SwapChainWrapper m_swapChain;
+
+	GraphicsPipelineWrapper m_graphicsPipeline;
 	
 	// GLFW resources
 	WindowWrapper m_window;
@@ -42,7 +46,7 @@ public:
     VulkanApplication(std::map<int, int> windowHints)
 		: m_window(windowHints) {};
 
-	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
+	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
 
 	// Getters
 	#ifdef _DEBUG
