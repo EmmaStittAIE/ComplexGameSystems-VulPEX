@@ -55,6 +55,7 @@ public:
 
 	// Getters
 	vk::Device GetLogicalDevice() const { return m_logicalDevice; };
+	vk::Queue GetQueue(std::string key) const { return m_requestedQueues.at(key); };
 	QueueFamilyIndices GetQueueFamilyIndices() const { return m_qfIndices; };
 
 	// Cleanup

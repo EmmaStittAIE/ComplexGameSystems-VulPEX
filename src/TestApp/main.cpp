@@ -57,11 +57,14 @@ int entryPoint()
 
     while (vkApp.IsRunning())
     {
-    	//Render();
+    	vkApp.RenderFrame();
 		
     	// Events (input, etc.)
     	glfwPollEvents();
     }
+
+	// Would be nice to have this happen automatically somehow...
+	vkApp.SynchroniseBeforeQuit();
 
 	return 0;
 }

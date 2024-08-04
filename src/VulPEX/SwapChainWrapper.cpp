@@ -158,8 +158,36 @@ void SwapChainWrapper::CreateSwapChain(vk::Device device, vk::SurfaceKHR surface
 	}
 }
 
+void SwapChainWrapper::CreateFramebuffers(vk::Device device, vk::RenderPass renderPass)
+{
+	m_frameBuffers.resize(m_imageViews.size());
+
+	for (std::size_t i = 0; i < m_imageViews.size(); i++)
+	{
+		vk::FramebufferCreateInfo framebufferInfo(
+			{},					//flags
+			renderPass,			//renderPass
+			1,					//attachmentCount
+			&m_imageViews[i],	//pAttachments
+			m_extent.width,		//width
+			m_extent.height,	//height
+			1					//layers
+		);
+
+		m_frameBuffers[i] = device.createFramebuffer(framebufferInfo);
+	}
+}
+
 void SwapChainWrapper::DestroySwapChain(vk::Device device)
 {
+	if (m_frameBuffers.size() != 0)
+	{
+		for (vk::Framebuffer frameBuffer : m_frameBuffers)
+		{
+			device.destroyFramebuffer(frameBuffer);
+		}
+	}
+
 	if (m_imageViews.size() != 0)
 	{
 		for (vk::ImageView imageView : m_imageViews)

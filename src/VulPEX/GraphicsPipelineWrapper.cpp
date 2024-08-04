@@ -40,12 +40,23 @@ void GraphicsPipelineWrapper::CreateRenderPass(vk::Device device, vk::Format ima
 	subpassDesc.colorAttachmentCount = 1;
 	subpassDesc.pColorAttachments = &colourAttachmentRef;
 
+	vk::SubpassDependency dependency(
+		vk::SubpassExternal,								//srcSubpass
+		0,													//dstSubpass
+		vk::PipelineStageFlagBits::eColorAttachmentOutput,	//srcStageMask
+		vk::PipelineStageFlagBits::eColorAttachmentOutput,	//dstStageMask
+		vk::AccessFlagBits::eNone,							//srcAccessMask
+		vk::AccessFlagBits::eColorAttachmentWrite			//dstAccessMask
+	);
+
 	vk::RenderPassCreateInfo renderPassInfo(
 		{},							//flags
 		1,							//attachmentCount
 		&colourAttachmentDesc,		//pAttachments
 		1,							//subpassCount
-		&subpassDesc				//pSubpasses
+		&subpassDesc,				//pSubpasses
+		1,							//dependencyCount
+		&dependency					//pDependencies
 	);
 
 	m_renderPass = device.createRenderPass(renderPassInfo);
@@ -204,9 +215,9 @@ void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderIn
 
 	vk::Result result;
 	std::tie(result, m_graphicsPipeline) = device.createGraphicsPipeline(nullptr, pipelineInfo);
-	if (result == vk::Result::ePipelineCompileRequiredEXT)
+	if (result == vk::Result::ePipelineCompileRequired)
 	{
-		throw std::runtime_error("Creation of graphics pipeline failed with error code: ePipelineCompileRequiredEXT");
+		throw std::runtime_error("Creation of graphics pipeline failed with error code: " + std::to_string((int)result));
 	}
 
 	device.destroyShaderModule(vertShaderModule);

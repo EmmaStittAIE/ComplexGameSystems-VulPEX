@@ -17,6 +17,7 @@
 #include "LogicalDeviceWrapper.hpp"
 #include "SwapChainWrapper.hpp"
 #include "GraphicsPipelineWrapper.hpp"
+#include "CommandBufferWrapper.hpp"
 
 class VulkanApplication
 {
@@ -35,7 +36,14 @@ class VulkanApplication
 	SwapChainWrapper m_swapChain;
 
 	GraphicsPipelineWrapper m_graphicsPipeline;
+
+	CommandBufferWrapper m_commandBuffer;
 	
+	// TODO: Find somewhere better to put these
+	vk::Semaphore m_imageAvailable = nullptr;
+	vk::Semaphore m_renderFinished = nullptr;
+	vk::Fence m_startRender = nullptr;
+
 	// GLFW resources
 	WindowWrapper m_window;
 
@@ -47,6 +55,8 @@ public:
 		: m_window(windowHints) {};
 
 	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
+	void RenderFrame();
+	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };
 
 	// Getters
 	#ifdef _DEBUG

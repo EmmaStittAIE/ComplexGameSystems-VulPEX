@@ -102,10 +102,80 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, Sh
 	
 	// Create a graphics pipeline to run shaders and draw our image
 	m_graphicsPipeline.CreateGraphicsPipeline(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat());
+
+	m_swapChain.CreateFramebuffers(m_logicalDevice.GetLogicalDevice(), m_graphicsPipeline.GetRenderPass());
+
+	m_commandBuffer.CreateCommandBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueueFamilyIndices().queueFamilies["graphicsQueueFamily"]);
+
+	// TODO: Find somewhere better to initialise these
+	// This has no functionality as of yet, but we have to specify it in case a future version of Vulkan defines some
+	vk::SemaphoreCreateInfo semaphoreInfo;
+	vk::FenceCreateInfo fenceInfo(
+		vk::FenceCreateFlagBits::eSignaled	//flags
+	);
+
+	m_imageAvailable = m_logicalDevice.GetLogicalDevice().createSemaphore(semaphoreInfo);
+	m_renderFinished = m_logicalDevice.GetLogicalDevice().createSemaphore(semaphoreInfo);
+	m_startRender = m_logicalDevice.GetLogicalDevice().createFence(fenceInfo);
+}
+
+void VulkanApplication::RenderFrame()
+{
+	vk::Result result;
+
+	result = m_logicalDevice.GetLogicalDevice().waitForFences(m_startRender, vk::True, UINT64_MAX);
+	if (result == vk::Result::eTimeout)
+	{
+		throw std::runtime_error("Timed out while waiting for fence \"m_startRender\"");
+	}
+	m_logicalDevice.GetLogicalDevice().resetFences(m_startRender);
+
+	uint32_t scImageIndex;
+	std::tie(result, scImageIndex) = m_logicalDevice.GetLogicalDevice().acquireNextImageKHR(m_swapChain.GetSwapchain(), UINT64_MAX, m_imageAvailable, nullptr);
+	if (result == vk::Result::eTimeout)
+	{
+		throw std::runtime_error("Timed out while acquiring next swapchain image");
+	}
+	
+	m_commandBuffer.RecordToCommandBuffer(m_graphicsPipeline.GetRenderPass(), m_swapChain.GetFramebuffer(scImageIndex),
+										  m_swapChain.GetExtent(), m_graphicsPipeline.GetPipeline());
+	
+	vk::PipelineStageFlags pipelineStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
+	vk::CommandBuffer commandBuffer = m_commandBuffer.GetCommandBuffer();
+	vk::SubmitInfo submitInfo(
+		1,										//waitSemaphoreCount
+		&m_imageAvailable,						//pWaitSemaphores
+		&pipelineStage,							//pWaitDstStageMask
+		1,										//commandBufferCount
+		&commandBuffer,							//pCommandBuffers
+		1,										//signalSemaphoreCount
+		&m_renderFinished						//pSignalSemaphores
+	);
+
+	m_logicalDevice.GetQueue("graphicsQueue").submit(submitInfo, m_startRender);
+
+	vk::SwapchainKHR swapchain = m_swapChain.GetSwapchain();
+	vk::PresentInfoKHR presentInfo(
+		1,								//waitSemaphoreCount
+		&m_renderFinished,				//pWaitSemaphores
+		1,								//swapchainCount
+		&swapchain,						//pSwapchains
+		&scImageIndex,					//pImageIndices
+		nullptr							//pResults
+	);
+
+	(void) m_logicalDevice.GetQueue("surfaceQueue").presentKHR(presentInfo);
 }
 
 VulkanApplication::~VulkanApplication()
 {
+	// TODO: Find somewhere better to destroy these
+	if (m_imageAvailable != nullptr) { m_logicalDevice.GetLogicalDevice().destroySemaphore(m_imageAvailable); }
+	if (m_renderFinished != nullptr) { m_logicalDevice.GetLogicalDevice().destroySemaphore(m_renderFinished); }
+	if (m_startRender != nullptr) { m_logicalDevice.GetLogicalDevice().destroyFence(m_startRender); }
+
+	m_commandBuffer.DestroyCommandBuffer(m_logicalDevice.GetLogicalDevice());
+
 	m_graphicsPipeline.DestroyPipeline(m_logicalDevice.GetLogicalDevice());
 
 	m_swapChain.DestroySwapChain(m_logicalDevice.GetLogicalDevice());

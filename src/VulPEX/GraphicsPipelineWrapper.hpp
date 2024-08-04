@@ -26,6 +26,7 @@ public:
 
 	// Getters
 	vk::Pipeline GetPipeline() const { return m_graphicsPipeline; };
+	vk::RenderPass GetRenderPass() const { return m_renderPass; };
 
 	// Cleanup
 	void DestroyPipeline(vk::Device device);
