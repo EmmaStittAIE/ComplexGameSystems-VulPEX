@@ -64,7 +64,7 @@ function CannotRun {
 }
 
 function PrintHelp {
-    echo "Usage: $0 [ -c CONFIG] [ -p PLATFORM ] [ -r ] [ -d ]"
+    echo "Usage: $0 [ -c CONFIG] [ -p PLATFORM ] [ -s SYSTEM ] [ -r ] [ -d ]"
 }
 
 # Define default options
@@ -72,9 +72,10 @@ run=false
 debug=false
 config="debug"
 platform="linux"
+system="make"
 
 # getopts loop
-while getopts "hrdc:p:" options; do
+while getopts "hrdc:p:s:" options; do
 
     case "${options}" in
 
@@ -99,12 +100,18 @@ while getopts "hrdc:p:" options; do
             platform=${OPTARG}
             ;;
 
+        s)
+            system=${OPTARG}
+            ;;
+
         *)
             PrintHelp
             exit 1
             ;;
     esac
 done
+
+echo $platform
 
 buildConfig="${config,,}_${platform,,}"
 
@@ -283,9 +290,7 @@ echo ""
 # Shaders
 echo "Compiling shaders..."
 cd ../working/Assets/Shaders/
-if ! ./CompileShaders.sh; then
-    FailedPremake
-fi
+./CompileShaders.sh
 
 echo "Shaders compiled"
 
@@ -293,23 +298,33 @@ echo "Shaders compiled"
 echo "Running premake..."
 cd ../../..
 
-if ! premake5 gmake2; then
+if [[ ${system} == "Make" ]]; then
+    if ! premake5 gmake2; then
+        FailedPremake
+    fi
+elif [[ ${system} == "VS2022" ]]; then
+    if ! premake5 vs2022; then
+        FailedPremake
+    fi
+else
     FailedPremake
 fi
 
 echo "Premake complete"
 
-# Make
-echo "Running make"
-cd generated
+if [[ ${system} == "Make" ]]; then
+    # Make
+    echo "Running make"
+    cd generated
 
-if ! make config=$buildConfig; then
-    FailedBuild
+    if ! make config=$buildConfig; then
+        FailedBuild
+    fi
+
+    echo "Make complete"
+
+    echo "Build complete"
 fi
-
-echo "Make complete"
-
-echo "Build complete"
 
 if [[ $run == true ]]; then
 

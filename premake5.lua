@@ -101,14 +101,35 @@ project "Test Application"
         "{RMDIR} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
     }
 
-    postbuildcommands
-    {
-        "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin/TestApp] %[working]",
-        "{RMDIR} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
-        "{COPYDIR} %[working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp]",
-        "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
-        "{DELETE} %[working/TestApp]"
-    }
+    filter "platforms:Linux"
+        postbuildcommands
+        {
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin/TestApp] %[working]",
+            "{RMDIR} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{COPYDIR} %[working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp]",
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{DELETE} %[working/TestApp]"
+        }
+
+    filter "platforms:Win32"
+        postbuildcommands
+        {
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin/TestApp.exe] %[working]",
+            "{RMDIR} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{COPYDIR} %[working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp]",
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{DELETE} %[working/TestApp.exe]"
+        }
+
+    filter "platforms:Win64"
+        postbuildcommands
+        {
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin/TestApp.exe] %[working]",
+            "{RMDIR} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{COPYDIR} %[working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp]",
+            "{MOVE} %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/working] %[build/%{cfg.platform}/%{cfg.buildcfg}/TestApp/bin]",
+            "{DELETE} %[working/TestApp.exe]"
+        }
 
     includedirs
     {
