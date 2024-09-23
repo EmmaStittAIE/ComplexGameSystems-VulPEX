@@ -9,6 +9,7 @@
 #include <GLFW/glfw3.h>
 
 #include "Utility/VulPEXMaths.hpp"
+#include "Modules/DataStructures.hpp"
 
 #include "WindowWrapper.hpp"
 #include "DebugMessengerWrapper.hpp"
@@ -54,6 +55,7 @@ public:
     VulkanApplication(std::map<int, int> windowHints)
 		: m_window(windowHints) {};
 
+	template <typename VertType = DataStructures::Vertex>
 	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
 	void RenderFrame();
 	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };

@@ -3,6 +3,8 @@
 #include <sstream>
 
 #include <VulkanApplication.hpp>
+#include <Modules/DataStructures.hpp>
+
 #include <Logger.hpp>
 #include <FileHandling.hpp>
 #include <Rand.hpp>
@@ -52,6 +54,12 @@ int entryPoint()
 	};
 
 	std::vector<const char *> extensions;
+
+	std::vector<DataStructures::Vertex> verts = {
+		{{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
+    	{{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
+    	{{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+	};
 
     vkApp.Init(winInfo, appInfo, shaderInfo, extensions, {});
 

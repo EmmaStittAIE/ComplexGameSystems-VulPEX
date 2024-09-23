@@ -22,6 +22,7 @@ class GraphicsPipelineWrapper
 	void CreateRenderPass(vk::Device device, vk::Format imageFormat);
 
 public:
+	template <typename VertType>
 	void CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat);
 
 	// Getters

@@ -1,6 +1,12 @@
 #pragma once
 
-#include "glm.hpp"
+#include "glm/glm.hpp"
+
+enum VulkanFormat
+{
+	eVec2 = (int)vk::Format::eR32G32Sfloat,
+	eVec3 = (int)vk::Format::eR32G32B32Sfloat
+};
 
 // Int vectors
 typedef glm::ivec2 IVec2;

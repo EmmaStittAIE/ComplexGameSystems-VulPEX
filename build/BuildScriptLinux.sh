@@ -289,7 +289,7 @@ echo ""
 
 # Shaders
 echo "Compiling shaders..."
-cd ../working/Assets/Shaders/
+cd ../working/Assets/Shaders
 ./CompileShaders.sh
 
 echo "Shaders compiled"

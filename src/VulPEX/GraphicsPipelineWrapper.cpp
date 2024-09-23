@@ -1,5 +1,7 @@
 #include "GraphicsPipelineWrapper.hpp"
 
+#include "Modules/DataStructures.hpp"
+
 // Private
 vk::ShaderModule GraphicsPipelineWrapper::CreateShaderModule(vk::Device device, std::vector<char> bytecode)
 {
@@ -63,6 +65,7 @@ void GraphicsPipelineWrapper::CreateRenderPass(vk::Device device, vk::Format ima
 }
 
 // Public
+template <typename VertType>
 void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat)
 {
 	CreateRenderPass(device, imageFormat);
@@ -86,13 +89,16 @@ void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderIn
 
 	vk::PipelineShaderStageCreateInfo shaderStageInfos[] = { vertShaderStageInfo, fragShaderStageInfo };
 
+	vk::VertexInputBindingDescription inputBindingDescription = VertexBase<VertType>::getInputBindingDescription();
+	std::array inputAttributeDescriptions = VertexBase<VertType>::getInputAttributeDescriptions();
+
 	// TODO: Rework this once vertex buffers are implemented
 	vk::PipelineVertexInputStateCreateInfo vertInputStateInfo(
-		{},			//flags
-		0,			//vertexBindingDescriptionCount
-		nullptr,	//pVertexBindingDescriptions
-		0,			//vertexAttributeDescriptionCount
-		nullptr		//pVertexAttributeDescriptions
+		{},										//flags
+		1,										//vertexBindingDescriptionCount
+		&inputBindingDescription,				//pVertexBindingDescriptions
+		inputAttributeDescriptions.size(),		//vertexAttributeDescriptionCount
+		inputAttributeDescriptions.data()		//pVertexAttributeDescriptions
 	);
 
 	// TODO: Make this customisable - tells the renderer what geometry to render, and whether we're reusing vertices or not
@@ -194,23 +200,23 @@ void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderIn
 	m_pipelineLayout = device.createPipelineLayout(pipelineLayoutInfo);
 
 	vk::GraphicsPipelineCreateInfo pipelineInfo(
-		{},						//flags
-		2,						//stageCount
-		shaderStageInfos,		//pStages
+		{},							//flags
+		2,							//stageCount
+		shaderStageInfos,			//pStages
 		&vertInputStateInfo,		//pVertexInputState
-		&inputAssemblyStateInfo,		//pInputAssemblyState
-		nullptr,		//pTessellationState
-		&viewportStateInfo,		//pViewportState
-		&rasterisationStateInfo,		//pRasterizationState
+		&inputAssemblyStateInfo,	//pInputAssemblyState
+		nullptr,					//pTessellationState
+		&viewportStateInfo,			//pViewportState
+		&rasterisationStateInfo,	//pRasterizationState
 		&multisampleStateInfo,		//pMultisampleState
-		nullptr,		//pDepthStencilState
+		nullptr,					//pDepthStencilState
 		&colourBlendStateInfo,		//pColorBlendState
-		&dynamicStateInfo,		//pDynamicState
-		m_pipelineLayout,		//layout
-		m_renderPass,		//renderPass
-		0,		//subpass
-		nullptr,		//basePipelineHandle
-		-1		//basePipelineIndex
+		&dynamicStateInfo,			//pDynamicState
+		m_pipelineLayout,			//layout
+		m_renderPass,				//renderPass
+		0,							//subpass
+		nullptr,					//basePipelineHandle
+		-1							//basePipelineIndex
 	);
 
 	vk::Result result;
