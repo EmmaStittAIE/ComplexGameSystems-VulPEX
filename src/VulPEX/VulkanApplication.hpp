@@ -2,14 +2,14 @@
 
 #include <unordered_map>
 #include <string>
+#include <array>
 
 // Include vulkan.hpp before glfw
-#define VULKAN_HPP_DISPATCH_LOADER_DYNAMIC 1
-#include <vulkan/vulkan.hpp>
+#include "Utility/VulkanDynamicInclude.hpp"
+
 #include <GLFW/glfw3.h>
 
 #include "Utility/VulPEXMaths.hpp"
-#include "Modules/DataStructures.hpp"
 
 #include "WindowWrapper.hpp"
 #include "DebugMessengerWrapper.hpp"
@@ -55,8 +55,11 @@ public:
     VulkanApplication(std::map<int, int> windowHints)
 		: m_window(windowHints) {};
 
-	template <typename VertType = DataStructures::Vertex>
-	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
+	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
+
+	void GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
+							   size_t vertexVarsInfoCount);
+
 	void RenderFrame();
 	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };
 

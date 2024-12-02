@@ -1,7 +1,5 @@
 #include "GraphicsPipelineWrapper.hpp"
 
-#include "Modules/DataStructures.hpp"
-
 // Private
 vk::ShaderModule GraphicsPipelineWrapper::CreateShaderModule(vk::Device device, std::vector<char> bytecode)
 {
@@ -65,8 +63,8 @@ void GraphicsPipelineWrapper::CreateRenderPass(vk::Device device, vk::Format ima
 }
 
 // Public
-template <typename VertType>
-void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat)
+void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat, uint32_t sizeOfVertex,
+													 std::pair<vk::Format, uint32_t>* vertexVarsInfo, size_t vertexVarsInfoCount)
 {
 	CreateRenderPass(device, imageFormat);
 
@@ -89,10 +87,25 @@ void GraphicsPipelineWrapper::CreateGraphicsPipeline(vk::Device device, ShaderIn
 
 	vk::PipelineShaderStageCreateInfo shaderStageInfos[] = { vertShaderStageInfo, fragShaderStageInfo };
 
-	vk::VertexInputBindingDescription inputBindingDescription = VertexBase<VertType>::getInputBindingDescription();
-	std::array inputAttributeDescriptions = VertexBase<VertType>::getInputAttributeDescriptions();
+	vk::VertexInputBindingDescription inputBindingDescription(
+		0,								//binding
+		sizeOfVertex,					//stride
+		vk::VertexInputRate::eVertex	//inputRate
+	);
 
-	// TODO: Rework this once vertex buffers are implemented
+	std::vector<vk::VertexInputAttributeDescription> inputAttributeDescriptions;
+	for (int i = 0; i < vertexVarsInfoCount; i++)
+	{
+		vk::VertexInputAttributeDescription vertInputAttribDesc(
+			i,							//location
+			0,							//binding
+			vertexVarsInfo[i].first,	//format
+			vertexVarsInfo[i].second	//offset
+		);
+
+		inputAttributeDescriptions.push_back(vertInputAttribDesc);
+	}
+
 	vk::PipelineVertexInputStateCreateInfo vertInputStateInfo(
 		{},										//flags
 		1,										//vertexBindingDescriptionCount

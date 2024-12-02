@@ -111,8 +111,6 @@ while getopts "hrdc:p:s:" options; do
     esac
 done
 
-echo $platform
-
 buildConfig="${config,,}_${platform,,}"
 
 echo "---Build Start---"

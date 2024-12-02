@@ -122,7 +122,7 @@ project "Test Application"
     {
         "lib/GLFW",
         "lib/EmmaUtils",
-        libdirs { os.findlib("vulkan") }
+        "$VULKAN_SDK/lib"
     }
 
     links

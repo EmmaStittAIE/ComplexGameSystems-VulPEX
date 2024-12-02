@@ -3,11 +3,31 @@
 #include <sstream>
 
 #include <VulkanApplication.hpp>
-#include <Modules/DataStructures.hpp>
+#include <Modules/DataStructures/DefaultVertex.hpp>
 
 #include <Logger.hpp>
 #include <FileHandling.hpp>
 #include <Rand.hpp>
+
+struct MyVertex {
+	Vec3 pos;
+	Vec3 normal;
+
+	MyVertex(Vec3 pos_, Vec3 normal_) { pos = pos_, normal = normal_; };
+
+	static uint32_t GetSizeOf()
+	{
+		return sizeof(MyVertex);
+	}
+
+	// Change size of array if number of variables changes
+	static std::array<std::pair<vk::Format, uint32_t>, 2> GetVarInfo()
+	{
+		std::pair<vk::Format, uint32_t> vertPosInfo = {(vk::Format)VulkanFormat::eVec3, offsetof(MyVertex, pos)};
+		std::pair<vk::Format, uint32_t> vertNormInfo = {(vk::Format)VulkanFormat::eVec3, offsetof(MyVertex, normal)};
+		return {vertPosInfo, vertNormInfo};
+	}
+};
 
 int entryPoint()
 {
@@ -53,7 +73,7 @@ int entryPoint()
 		FileHandling::LoadFileToByteArray("Assets/Shaders/SPIR-V/defaultFrag.spv")	//fragBytecode
 	};
 
-	std::vector<const char *> extensions;
+	std::vector<const char*> extensions;
 
 	std::vector<DataStructures::Vertex> verts = {
 		{{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
@@ -61,10 +81,20 @@ int entryPoint()
     	{{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
 	};
 
-    vkApp.Init(winInfo, appInfo, shaderInfo, extensions, {});
+	/*std::vector<MyVertex> myVerts = {
+		{{ 0.0f, -0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    	{{ 0.5f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}},
+    	{{-0.5f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}
+	};*/
+
+    vkApp.Init(winInfo, appInfo, extensions, {});
+
+	std::array vertexInfo = DataStructures::Vertex::GetVarInfo();
+	vkApp.GraphicsPipelineSetup(shaderInfo, DataStructures::Vertex::GetSizeOf(), vertexInfo.data(), vertexInfo.size());
 
     while (vkApp.IsRunning())
     {
+		// TODO: When the player passes vertices here, ensure thet they're of the same type as DataStrcutures::Vertex
     	vkApp.RenderFrame();
 		
     	// Events (input, etc.)

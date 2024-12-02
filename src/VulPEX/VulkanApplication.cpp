@@ -57,8 +57,8 @@ void VulkanApplication::CreateVulkanInstance(vk::ApplicationInfo appInfo, std::v
 }
 
 // Public Methods
-template <typename VertType>
-void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, ShaderInfo shaderInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags)
+void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions,
+							 vk::InstanceCreateFlags vkFlags)
 {
 	VULKAN_HPP_DEFAULT_DISPATCHER.init();
 
@@ -100,9 +100,14 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, Sh
 	// Create a swapchain to present images to the screen with
 	m_swapChain.CreateSwapChain(m_logicalDevice.GetLogicalDevice(), m_displaySurface.GetSurface(), m_window.GetWindow(),
 								m_physicalDevice.GetSwapChainSupportInfo(), m_logicalDevice.GetQueueFamilyIndices());
-	
+}
+
+void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
+											  size_t vertexVarsInfoCount)
+{
 	// Create a graphics pipeline to run shaders and draw our image
-	m_graphicsPipeline.CreateGraphicsPipeline<VertType>(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat());
+	m_graphicsPipeline.CreateGraphicsPipeline(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat(),
+											  sizeOfVertex, vertexVarsInfo, vertexVarsInfoCount);
 
 	m_swapChain.CreateFramebuffers(m_logicalDevice.GetLogicalDevice(), m_graphicsPipeline.GetRenderPass());
 

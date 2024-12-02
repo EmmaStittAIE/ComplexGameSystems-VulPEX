@@ -3,7 +3,7 @@
 #include <vector>
 #include <string>
 
-#include <vulkan/vulkan.hpp>
+#include "Utility/VulkanDynamicInclude.hpp"
 
 struct ShaderInfo
 {
@@ -22,8 +22,8 @@ class GraphicsPipelineWrapper
 	void CreateRenderPass(vk::Device device, vk::Format imageFormat);
 
 public:
-	template <typename VertType>
-	void CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat);
+	void CreateGraphicsPipeline(vk::Device device, ShaderInfo shaderInfo, vk::Extent2D scExtent, vk::Format imageFormat, uint32_t sizeOfVertex,
+								std::pair<vk::Format, uint32_t>* vertexVarsInfo, size_t vertexVarsInfoCount);
 
 	// Getters
 	vk::Pipeline GetPipeline() const { return m_graphicsPipeline; };
