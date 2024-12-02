@@ -2,9 +2,7 @@
 
 #include <vector>
 
-#include <vulkan/vulkan.hpp>
-
-#include "VulPEXStructs.hpp"
+#include "VulkanDynamicInclude.hpp"
 
 namespace VkUtils
 {

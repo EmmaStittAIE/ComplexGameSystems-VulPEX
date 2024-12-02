@@ -19,7 +19,8 @@ void CommandBufferWrapper::CreateCommandBuffer(vk::Device device, uint32_t queue
 	m_commandBuffer = device.allocateCommandBuffers(commandBufferInfo)[0];
 }
 
-void CommandBufferWrapper::RecordToCommandBuffer(vk::RenderPass renderPass, vk::Framebuffer frameBuffer, vk::Extent2D scExtent, vk::Pipeline graphicsPipeline)
+void CommandBufferWrapper::RecordToCommandBuffer(vk::RenderPass renderPass, vk::Framebuffer frameBuffer, vk::Buffer vertexBuffer, uint32_t vertexCount,
+												 vk::Extent2D scExtent, vk::Pipeline graphicsPipeline)
 {
 	m_commandBuffer.reset();
 
@@ -44,6 +45,10 @@ void CommandBufferWrapper::RecordToCommandBuffer(vk::RenderPass renderPass, vk::
 
 	m_commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, graphicsPipeline);
 
+	vk::Buffer vertexBuffers[] = { vertexBuffer };
+	vk::DeviceSize offsets[] = { 0 };
+	m_commandBuffer.bindVertexBuffers(0, 1, vertexBuffers, offsets);
+
 	vk::Viewport viewport(
 		0,					//x
 		0,					//y
@@ -61,10 +66,10 @@ void CommandBufferWrapper::RecordToCommandBuffer(vk::RenderPass renderPass, vk::
 	m_commandBuffer.setScissor(0, scissorRect);
 
 	m_commandBuffer.draw(
-		3,	//vertexCount
-		1,	//instanceCount
-		0,	//firstVertex
-		0	//firstInstance
+		vertexCount,	//vertexCount
+		1,				//instanceCount
+		0,				//firstVertex
+		0				//firstInstance
 	);
 
 	m_commandBuffer.endRenderPass();

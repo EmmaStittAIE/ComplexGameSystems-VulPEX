@@ -3,7 +3,7 @@
 #include <cstddef>
 #include <array>
 
-#include <vulkan/vulkan.hpp>
+#include "../../Utility/VulkanDynamicInclude.hpp"
 
 #include "../../Utility/VulPEXMaths.hpp"
 

@@ -6,7 +6,6 @@
 
 // Include vulkan.hpp before glfw
 #include "Utility/VulkanDynamicInclude.hpp"
-
 #include <GLFW/glfw3.h>
 
 #include "Utility/VulPEXMaths.hpp"
@@ -18,7 +17,10 @@
 #include "LogicalDeviceWrapper.hpp"
 #include "SwapChainWrapper.hpp"
 #include "GraphicsPipelineWrapper.hpp"
+#include "BufferWrapper.hpp"
 #include "CommandBufferWrapper.hpp"
+
+#include "Modules/DataStructures/DefaultVertex.hpp"
 
 class VulkanApplication
 {
@@ -37,6 +39,8 @@ class VulkanApplication
 	SwapChainWrapper m_swapChain;
 
 	GraphicsPipelineWrapper m_graphicsPipeline;
+
+	BufferWrapper m_vertexBuffer;
 
 	CommandBufferWrapper m_commandBuffer;
 	
@@ -58,9 +62,9 @@ public:
 	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
 
 	void GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
-							   size_t vertexVarsInfoCount);
+							   size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts);
 
-	void RenderFrame();
+	void RenderFrame(std::vector<DataStructures::Vertex> verts);
 	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };
 
 	// Getters

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.hpp>
+#include "Utility/VulkanDynamicInclude.hpp"
 
 class CommandBufferWrapper
 {
@@ -11,7 +11,8 @@ class CommandBufferWrapper
 public:
 	void CreateCommandBuffer(vk::Device device, uint32_t queueFamilyIndex);
 
-	void RecordToCommandBuffer(vk::RenderPass renderPass, vk::Framebuffer frameBuffer, vk::Extent2D scExtent, vk::Pipeline graphicsPipeline);
+	void RecordToCommandBuffer(vk::RenderPass renderPass, vk::Framebuffer frameBuffer, vk::Buffer vertexBuffer, uint32_t vertexCount,
+							   vk::Extent2D scExtent, vk::Pipeline graphicsPipeline);
 
 	// Getters
 	vk::CommandBuffer GetCommandBuffer() const { return m_commandBuffer; };

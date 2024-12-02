@@ -103,13 +103,30 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, st
 }
 
 void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
-											  size_t vertexVarsInfoCount)
+											  size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts)
 {
 	// Create a graphics pipeline to run shaders and draw our image
 	m_graphicsPipeline.CreateGraphicsPipeline(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat(),
 											  sizeOfVertex, vertexVarsInfo, vertexVarsInfoCount);
 
+	// Create framebuffers to display our image
 	m_swapChain.CreateFramebuffers(m_logicalDevice.GetLogicalDevice(), m_graphicsPipeline.GetRenderPass());
+
+	// Create vertex buffers to so we can send our vertex data to the GPU
+	// TODO: This needs to be made on the fly when loading data, eventually
+	vk::BufferCreateInfo vertexBufferInfo(
+		{},										//flags
+		sizeOfVertex * verts.size(),			//size
+		vk::BufferUsageFlagBits::eVertexBuffer,	//usage
+		vk::SharingMode::eExclusive				//sharingMode
+		//queueFamilyIndexCount
+		//pQueueFamilyIndices
+		//pNext
+	);
+	// TODO: Those MemoryProperty bits should probably be customisable
+	m_vertexBuffer.CreateBuffer(m_physicalDevice.GetPhysicalDevice(), m_logicalDevice.GetLogicalDevice(), vertexBufferInfo,
+								vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+	m_vertexBuffer.FillBuffer(m_logicalDevice.GetLogicalDevice(), verts.data(), sizeOfVertex, verts.size());
 
 	m_commandBuffer.CreateCommandBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueueFamilyIndices().queueFamilies["graphicsQueueFamily"]);
 
@@ -125,7 +142,7 @@ void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t si
 	m_startRender = m_logicalDevice.GetLogicalDevice().createFence(fenceInfo);
 }
 
-void VulkanApplication::RenderFrame()
+void VulkanApplication::RenderFrame(std::vector<DataStructures::Vertex> verts)
 {
 	vk::Result result;
 
@@ -143,7 +160,7 @@ void VulkanApplication::RenderFrame()
 		throw std::runtime_error("Timed out while acquiring next swapchain image");
 	}
 	
-	m_commandBuffer.RecordToCommandBuffer(m_graphicsPipeline.GetRenderPass(), m_swapChain.GetFramebuffer(scImageIndex),
+	m_commandBuffer.RecordToCommandBuffer(m_graphicsPipeline.GetRenderPass(), m_swapChain.GetFramebuffer(scImageIndex), m_vertexBuffer.GetBuffer(), verts.size(),
 										  m_swapChain.GetExtent(), m_graphicsPipeline.GetPipeline());
 	
 	vk::PipelineStageFlags pipelineStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
@@ -181,6 +198,8 @@ VulkanApplication::~VulkanApplication()
 	if (m_startRender != nullptr) { m_logicalDevice.GetLogicalDevice().destroyFence(m_startRender); }
 
 	m_commandBuffer.DestroyCommandBuffer(m_logicalDevice.GetLogicalDevice());
+
+	m_vertexBuffer.DestroyBuffer(m_logicalDevice.GetLogicalDevice());
 
 	m_graphicsPipeline.DestroyPipeline(m_logicalDevice.GetLogicalDevice());
 
