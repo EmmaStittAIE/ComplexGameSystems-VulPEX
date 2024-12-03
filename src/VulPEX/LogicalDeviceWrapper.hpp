@@ -14,8 +14,14 @@ struct QueueFamilyIndices
 	 * They are as follows:
 	 *  - graphicsQueueFamily
 	 *  - surfaceQueueFamily
+	 *  - transferQueueFamily
 	*/
 	std::unordered_map<std::string, uint32_t> queueFamilies;
+
+	bool FamilyExists(std::string family)
+	{
+		return queueFamilies.contains(family);
+	}
 
 	// TODO: Make this only contain the families that the user has specified are crucial to the project running
 	bool NecessaryFamiliesFilled() const
@@ -25,7 +31,8 @@ struct QueueFamilyIndices
 
 	bool IsFilled() const
 	{
-		return queueFamilies.contains("graphicsQueueFamily") && queueFamilies.contains("surfaceQueueFamily");
+		return queueFamilies.contains("graphicsQueueFamily") && queueFamilies.contains("surfaceQueueFamily") &&
+			   queueFamilies.contains("transferQueueFamily");
 	}
 };
 
@@ -35,7 +42,7 @@ class LogicalDeviceWrapper
 	vk::Device m_logicalDevice = nullptr;
 
 	// Misc resources
-	std::unordered_map<std::string, vk::Queue> m_requestedQueues;
+	std::unordered_map<std::string, vk::Queue> m_queues;
 
 	QueueFamilyIndices m_qfIndices;
 
@@ -45,7 +52,7 @@ class LogicalDeviceWrapper
 public:
 	LogicalDeviceWrapper();
 
-	void ConfigureLogicalDevice(std::unordered_map<std::string, vk::Queue> queues);
+	void ConfigureLogicalDevice(std::vector<std::string> requestedQueueFamilies);
 	
 	#ifdef _DEBUG
 		void CreateLogicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char*> deviceExtensions, std::vector<const char*> validationLayers);
@@ -55,7 +62,7 @@ public:
 
 	// Getters
 	vk::Device GetLogicalDevice() const { return m_logicalDevice; };
-	vk::Queue GetQueue(std::string key) const { return m_requestedQueues.at(key); };
+	vk::Queue GetQueue(std::string key) const { return m_queues.at(key); };
 	QueueFamilyIndices GetQueueFamilyIndices() const { return m_qfIndices; };
 
 	// Cleanup

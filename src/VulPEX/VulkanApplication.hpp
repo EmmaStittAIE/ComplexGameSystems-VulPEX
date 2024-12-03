@@ -42,7 +42,8 @@ class VulkanApplication
 
 	BufferWrapper m_vertexBuffer;
 
-	CommandBufferWrapper m_commandBuffer;
+	CommandBufferWrapper m_graphicsCommandBuffer;
+	CommandBufferWrapper m_transferCommandBuffer;
 	
 	// TODO: Find somewhere better to put these
 	vk::Semaphore m_imageAvailable = nullptr;

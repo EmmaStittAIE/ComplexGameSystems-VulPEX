@@ -99,7 +99,8 @@ void SwapChainWrapper::CreateSwapChain(vk::Device device, vk::SurfaceKHR surface
 	uint32_t sciQfIndexCount;
 	const uint32_t* sciQfIndices;
 
-	uint32_t qfIndicesArray[] = { qfIndices.queueFamilies["graphicsQueueFamily"], qfIndices.queueFamilies["surfaceQueueFamily"] };
+	// This should probably be made user-choice later
+	uint32_t qfIndicesArray[] = { qfIndices.queueFamilies.at("graphicsQueueFamily"), qfIndices.queueFamilies.at("surfaceQueueFamily") };
 	if (qfIndicesArray[0] != qfIndicesArray[1])
 	{
 		// If our graphics qf and surface qf are different, we'll either need to transfer ownership on the fly, or just tell Vulkan

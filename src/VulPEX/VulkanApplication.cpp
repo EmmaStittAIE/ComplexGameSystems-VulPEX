@@ -114,21 +114,23 @@ void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t si
 
 	// Create vertex buffers to so we can send our vertex data to the GPU
 	// TODO: This needs to be made on the fly when loading data, eventually
+	uint32_t qfIndicesArray[] = { m_logicalDevice.GetQueueFamilyIndices().queueFamilies.at("graphicsQueueFamily"),
+								  m_logicalDevice.GetQueueFamilyIndices().queueFamilies.at("transferQueueFamily") };
 	vk::BufferCreateInfo vertexBufferInfo(
-		{},										//flags
-		sizeOfVertex * verts.size(),			//size
-		vk::BufferUsageFlagBits::eVertexBuffer,	//usage
-		vk::SharingMode::eExclusive				//sharingMode
-		//queueFamilyIndexCount
-		//pQueueFamilyIndices
-		//pNext
+		{},											//flags
+		sizeOfVertex * verts.size(),				//size
+		vk::BufferUsageFlagBits::eVertexBuffer,		//usage
+		vk::SharingMode::eConcurrent,				//sharingMode
+		2,											//queueFamilyIndexCount
+		qfIndicesArray								//pQueueFamilyIndices
 	);
 	// TODO: Those MemoryProperty bits should probably be customisable
 	m_vertexBuffer.CreateBuffer(m_physicalDevice.GetPhysicalDevice(), m_logicalDevice.GetLogicalDevice(), vertexBufferInfo,
 								vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
 	m_vertexBuffer.FillBuffer(m_logicalDevice.GetLogicalDevice(), verts.data(), sizeOfVertex, verts.size());
 
-	m_commandBuffer.CreateCommandBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueueFamilyIndices().queueFamilies["graphicsQueueFamily"]);
+	m_graphicsCommandBuffer.CreateCommandBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueueFamilyIndices().queueFamilies.at("graphicsQueueFamily"));
+	m_transferCommandBuffer.CreateCommandBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueueFamilyIndices().queueFamilies.at("transferQueueFamily"));
 
 	// TODO: Find somewhere better to initialise these
 	// This has no functionality as of yet, but we have to specify it in case a future version of Vulkan defines some
@@ -160,31 +162,31 @@ void VulkanApplication::RenderFrame(std::vector<DataStructures::Vertex> verts)
 		throw std::runtime_error("Timed out while acquiring next swapchain image");
 	}
 	
-	m_commandBuffer.RecordToCommandBuffer(m_graphicsPipeline.GetRenderPass(), m_swapChain.GetFramebuffer(scImageIndex), m_vertexBuffer.GetBuffer(), verts.size(),
+	m_graphicsCommandBuffer.RecordToCommandBuffer(m_graphicsPipeline.GetRenderPass(), m_swapChain.GetFramebuffer(scImageIndex), m_vertexBuffer.GetBuffer(), verts.size(),
 										  m_swapChain.GetExtent(), m_graphicsPipeline.GetPipeline());
 	
 	vk::PipelineStageFlags pipelineStage = vk::PipelineStageFlagBits::eColorAttachmentOutput;
-	vk::CommandBuffer commandBuffer = m_commandBuffer.GetCommandBuffer();
+	vk::CommandBuffer graphicsCommandBuffer = m_graphicsCommandBuffer.GetCommandBuffer();
 	vk::SubmitInfo submitInfo(
-		1,										//waitSemaphoreCount
-		&m_imageAvailable,						//pWaitSemaphores
-		&pipelineStage,							//pWaitDstStageMask
-		1,										//commandBufferCount
-		&commandBuffer,							//pCommandBuffers
-		1,										//signalSemaphoreCount
-		&m_renderFinished						//pSignalSemaphores
+		1,							//waitSemaphoreCount
+		&m_imageAvailable,			//pWaitSemaphores
+		&pipelineStage,				//pWaitDstStageMask
+		1,							//commandBufferCount
+		&graphicsCommandBuffer,		//pCommandBuffers
+		1,							//signalSemaphoreCount
+		&m_renderFinished			//pSignalSemaphores
 	);
 
 	m_logicalDevice.GetQueue("graphicsQueue").submit(submitInfo, m_startRender);
 
 	vk::SwapchainKHR swapchain = m_swapChain.GetSwapchain();
 	vk::PresentInfoKHR presentInfo(
-		1,								//waitSemaphoreCount
-		&m_renderFinished,				//pWaitSemaphores
-		1,								//swapchainCount
-		&swapchain,						//pSwapchains
-		&scImageIndex,					//pImageIndices
-		nullptr							//pResults
+		1,						//waitSemaphoreCount
+		&m_renderFinished,		//pWaitSemaphores
+		1,						//swapchainCount
+		&swapchain,				//pSwapchains
+		&scImageIndex,			//pImageIndices
+		nullptr					//pResults
 	);
 
 	(void) m_logicalDevice.GetQueue("surfaceQueue").presentKHR(presentInfo);
@@ -192,18 +194,21 @@ void VulkanApplication::RenderFrame(std::vector<DataStructures::Vertex> verts)
 
 VulkanApplication::~VulkanApplication()
 {
+	vk::Device logicalDevice = m_logicalDevice.GetLogicalDevice();
+
 	// TODO: Find somewhere better to destroy these
-	if (m_imageAvailable != nullptr) { m_logicalDevice.GetLogicalDevice().destroySemaphore(m_imageAvailable); }
-	if (m_renderFinished != nullptr) { m_logicalDevice.GetLogicalDevice().destroySemaphore(m_renderFinished); }
-	if (m_startRender != nullptr) { m_logicalDevice.GetLogicalDevice().destroyFence(m_startRender); }
+	if (m_imageAvailable != nullptr) { logicalDevice.destroySemaphore(m_imageAvailable); }
+	if (m_renderFinished != nullptr) { logicalDevice.destroySemaphore(m_renderFinished); }
+	if (m_startRender != nullptr) { logicalDevice.destroyFence(m_startRender); }
 
-	m_commandBuffer.DestroyCommandBuffer(m_logicalDevice.GetLogicalDevice());
+	m_transferCommandBuffer.DestroyCommandBuffer(logicalDevice);
+	m_graphicsCommandBuffer.DestroyCommandBuffer(logicalDevice);
 
-	m_vertexBuffer.DestroyBuffer(m_logicalDevice.GetLogicalDevice());
+	m_vertexBuffer.DestroyBuffer(logicalDevice);
 
-	m_graphicsPipeline.DestroyPipeline(m_logicalDevice.GetLogicalDevice());
+	m_graphicsPipeline.DestroyPipeline(logicalDevice);
 
-	m_swapChain.DestroySwapChain(m_logicalDevice.GetLogicalDevice());
+	m_swapChain.DestroySwapChain(logicalDevice);
 
 	m_logicalDevice.DestroyLogicalDevice();
 

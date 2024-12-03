@@ -17,6 +17,14 @@ QueueFamilyIndices LogicalDeviceWrapper::GetAvailableQueueFamilies(vk::PhysicalD
 			indices.queueFamilies.insert_or_assign("graphicsQueueFamily", i);
 		}
 
+		// For our transfer family, we explicitly want families that support transfer, but not graphics
+		// Otherwise, we may as well fall back on graphics
+		if ((queueFamilies[i].queueFlags & vk::QueueFlagBits::eTransfer) &&
+			!(queueFamilies[i].queueFlags & vk::QueueFlagBits::eGraphics))
+		{
+			indices.queueFamilies.insert_or_assign("transferQueueFamily", i);
+		}
+
 		uint32_t surfaceSupport = device.getSurfaceSupportKHR(i, surface);		
 
 		if (surfaceSupport)
@@ -32,12 +40,16 @@ QueueFamilyIndices LogicalDeviceWrapper::GetAvailableQueueFamilies(vk::PhysicalD
 
 LogicalDeviceWrapper::LogicalDeviceWrapper()
 {
-	m_requestedQueues = {{"graphicsQueue", nullptr}, {"surfaceQueue", nullptr}};
+	m_queues = {{"graphicsQueue", nullptr}, {"surfaceQueue", nullptr}, {"transferQueue", nullptr}};
 }
 
-void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string, vk::Queue> queues)
+void LogicalDeviceWrapper::ConfigureLogicalDevice(std::vector<std::string> requestedQueueFamilies)
 {
-	m_requestedQueues = queues;
+	for (std::string queueFamily : requestedQueueFamilies)
+	{
+		m_queues.insert_or_assign(queueFamily, nullptr);
+	}
+	
 }
 
 // Public
@@ -53,16 +65,17 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		std::vector<vk::DeviceQueueCreateInfo> queueInfoList;
 
 		// This is a set because we *cannot* have duplicate queue family indices
-		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies["graphicsQueueFamily"], m_qfIndices.queueFamilies["surfaceQueueFamily"] };
+		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies.at("graphicsQueueFamily"), m_qfIndices.queueFamilies.at("surfaceQueueFamily"),
+												   m_qfIndices.queueFamilies.at("transferQueueFamily") };
 
 		float queuePriority = 1;
 		for (uint32_t queueFamilyIndex : uniqueQueueFamilies)
 		{
 			vk::DeviceQueueCreateInfo queueInfo(
-				{},												//flags
-				queueFamilyIndex,								//queueFamilyIndex
-				1,												//queueCount
-				&queuePriority									//pQueuePriorities
+				{},					//flags
+				queueFamilyIndex,	//queueFamilyIndex
+				1,					//queueCount
+				&queuePriority		//pQueuePriorities
 			);
 
 			queueInfoList.push_back(queueInfo);
@@ -80,20 +93,22 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		enabledLayerNames = validationLayers.data();
 		
 		vk::DeviceCreateInfo logicalDeviceInfo(
-			{},										//flags
-			(uint32_t)queueInfoList.size(),			//queueCreateInfoCount
-			queueInfoList.data(),					//pQueueCreateInfos
-			enabledLayerCount,						//enabledLayerCount
-			enabledLayerNames,						//ppEnabledLayerNames
-			(uint32_t)deviceExtensions.size(),		//enabledExtensionCount
-			deviceExtensions.data(),				//ppEnabledExtensionNames
-			&featuresInfo							//pEnabledFeatures
+			{},									//flags
+			(uint32_t)queueInfoList.size(),		//queueCreateInfoCount
+			queueInfoList.data(),				//pQueueCreateInfos
+			enabledLayerCount,					//enabledLayerCount
+			enabledLayerNames,					//ppEnabledLayerNames
+			(uint32_t)deviceExtensions.size(),	//enabledExtensionCount
+			deviceExtensions.data(),			//ppEnabledExtensionNames
+			&featuresInfo						//pEnabledFeatures
 		);
 
 		m_logicalDevice = device.createDevice(logicalDeviceInfo);
 
-		m_requestedQueues["graphicsQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies["graphicsQueueFamily"], 0);
-		m_requestedQueues["surfaceQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies["surfaceQueueFamily"], 0);
+		// m_queues is set up to contain only the queues that the user needs, so we won't fill ones that aren't already there
+		if (m_queues.contains("graphicsQueue")) { m_queues["graphicsQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("graphicsQueueFamily"), 0); }
+		if (m_queues.contains("surfaceQueue")) { m_queues["surfaceQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("surfaceQueueFamily"), 0); }
+		if (m_queues.contains("transferQueue")) { m_queues["transferQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("transferQueueFamily"), 0); }
 	}
 #else
 	void LogicalDeviceWrapper::CreateLogicalDevice(vk::PhysicalDevice device, vk::SurfaceKHR surface, std::vector<const char*> deviceExtensions)
@@ -107,7 +122,8 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 		std::vector<vk::DeviceQueueCreateInfo> queueInfoList;
 
 		// This is a set because we *cannot* have duplicate queue family indices
-		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies["graphicsQueueFamily"], m_qfIndices.queueFamilies["surfaceQueueFamily"] };
+		std::set<uint32_t> uniqueQueueFamilies = { m_qfIndices.queueFamilies.at("graphicsQueueFamily"), m_qfIndices.queueFamilies.at("surfaceQueueFamily"),
+												   m_qfIndices.queueFamilies.at("transferQueueFamily") };
 
 		float queuePriority = 1;
 		for (uint32_t queueFamilyIndex : uniqueQueueFamilies)
@@ -137,8 +153,10 @@ void LogicalDeviceWrapper::ConfigureLogicalDevice(std::unordered_map<std::string
 
 		m_logicalDevice = device.createDevice(logicalDeviceInfo);
 
-		m_requestedQueues["graphicsQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies["graphicsQueueFamily"], 0);
-		m_requestedQueues["surfaceQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies["surfaceQueueFamily"], 0);
+		// m_queues is set up to contain only the queues that the user needs, so we won't fill ones that aren't already there
+		if (m_queues.contains("graphicsQueue")) { m_queues["graphicsQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("graphicsQueueFamily"), 0); }
+		if (m_queues.contains("surfaceQueue")) { m_queues["surfaceQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("surfaceQueueFamily"), 0); }
+		if (m_queues.contains("transferQueue")) { m_queues["transferQueue"] = m_logicalDevice.getQueue(m_qfIndices.queueFamilies.at("transferQueueFamily"), 0); }
 	}
 #endif
 
