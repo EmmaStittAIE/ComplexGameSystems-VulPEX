@@ -2,6 +2,8 @@
 
 #include "Utility/VulkanDynamicInclude.hpp"
 
+#include "CommandPoolWrapper.hpp"
+
 class BufferWrapper
 {
 	// Vulkan resources
@@ -9,6 +11,8 @@ class BufferWrapper
 	vk::DeviceMemory m_bufferMemory;
 
 	vk::BufferCreateInfo m_bufferInfo;
+
+	vk::Fence m_copyDone;
 
 	// Other resources
 	uint32_t m_elementSize;
@@ -19,7 +23,9 @@ class BufferWrapper
 
 public:
 	void CreateBuffer(vk::PhysicalDevice physDevice, vk::Device virtualDevice, vk::BufferCreateInfo bufferInfo, vk::MemoryPropertyFlags memoryProperties);
+
 	void FillBuffer(vk::Device device, void* data, uint32_t elementSize, uint32_t elementCount);
+	void CopyBuffer(vk::Device device, vk::Queue transferQueue, CommandPoolWrapper* commandPool, vk::Buffer destination);
 
 	// Getters
 	vk::Buffer GetBuffer() const { return m_buffer; };

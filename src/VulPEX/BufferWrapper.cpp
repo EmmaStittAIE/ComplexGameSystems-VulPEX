@@ -34,6 +34,9 @@ void BufferWrapper::CreateBuffer(vk::PhysicalDevice physDevice, vk::Device virtu
 	m_bufferMemory = virtualDevice.allocateMemory(allocateInfo);
 
 	virtualDevice.bindBufferMemory(m_buffer, m_bufferMemory, 0);
+
+	vk::FenceCreateInfo fenceInfo;
+	m_copyDone = virtualDevice.createFence(fenceInfo);
 }
 
 void BufferWrapper::FillBuffer(vk::Device device, void* data, uint32_t elementSize, uint32_t elementCount)
@@ -47,8 +50,48 @@ void BufferWrapper::FillBuffer(vk::Device device, void* data, uint32_t elementSi
 	device.unmapMemory(m_bufferMemory);
 }
 
+void BufferWrapper::CopyBuffer(vk::Device device, vk::Queue transferQueue, CommandPoolWrapper* commandPool, vk::Buffer destination)
+{
+	uint32_t bufferIndex = commandPool->CreateCommandBuffers(device, vk::CommandBufferLevel::ePrimary, 1)[0];
+
+	commandPool->BeginRecordingToBuffer(bufferIndex, vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+	vk::BufferCopy copyRegion(
+		0,									//srcOffset
+		0,									//dstOffset
+		m_elementSize * m_elementCount		//size
+	);
+
+	commandPool->GetCommandBuffer(bufferIndex).copyBuffer(m_buffer, destination, copyRegion);
+
+	commandPool->EndRecordingToBuffer(bufferIndex);
+
+	vk::CommandBuffer commandBuffer = commandPool->GetCommandBuffer(bufferIndex);
+	vk::SubmitInfo submitInfo(
+		0,					//waitSemaphoreCount
+		nullptr,			//pWaitSemaphores
+		nullptr,			//pWaitDstStageMask
+		1,					//commandBufferCount
+		&commandBuffer,		//pCommandBuffers
+		0,					//signalSemaphoreCount
+		nullptr				//pSignalSemaphores
+	);
+
+	transferQueue.submit(submitInfo, m_copyDone);
+	vk::Result result = device.waitForFences(m_copyDone, vk::True, UINT64_MAX);
+	if (result == vk::Result::eTimeout)
+	{
+		throw std::runtime_error("Timed out while waiting for fence \"m_copyDone\"");
+	}
+	device.resetFences(m_copyDone);
+
+	device.freeCommandBuffers(commandPool->GetCommandPool(), commandPool->GetCommandBuffer(bufferIndex));
+}
+
 void BufferWrapper::DestroyBuffer(vk::Device device)
 {
+	if (m_copyDone != nullptr) { device.destroyFence(m_copyDone); }
+
 	device.destroyBuffer(m_buffer);
 
 	device.freeMemory(m_bufferMemory);

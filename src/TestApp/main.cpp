@@ -96,7 +96,7 @@ int entryPoint()
     while (vkApp.IsRunning())
     {
 		// TODO: When the player passes vertices here, ensure thet they're of the same type as DataStrcutures::Vertex
-    	vkApp.RenderFrame(verts);
+    	vkApp.RenderFrame(DataStructures::Vertex::GetSizeOf(), verts);
 		
     	// Events (input, etc.)
     	glfwPollEvents();

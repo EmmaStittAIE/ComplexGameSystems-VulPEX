@@ -18,7 +18,7 @@
 #include "SwapChainWrapper.hpp"
 #include "GraphicsPipelineWrapper.hpp"
 #include "BufferWrapper.hpp"
-#include "CommandBufferWrapper.hpp"
+#include "CommandPoolWrapper.hpp"
 
 #include "Modules/DataStructures/DefaultVertex.hpp"
 
@@ -40,10 +40,12 @@ class VulkanApplication
 
 	GraphicsPipelineWrapper m_graphicsPipeline;
 
-	BufferWrapper m_vertexBuffer;
+	BufferWrapper m_vertexStagingBuffer;
+	BufferWrapper m_vertexDeviceBuffer;
 
-	CommandBufferWrapper m_graphicsCommandBuffer;
-	CommandBufferWrapper m_transferCommandBuffer;
+	CommandPoolWrapper m_graphicsCommandPool;
+	uint32_t m_renderCommandBufferIndex;
+	CommandPoolWrapper m_transientTransferCommandPool;
 	
 	// TODO: Find somewhere better to put these
 	vk::Semaphore m_imageAvailable = nullptr;
@@ -65,7 +67,7 @@ public:
 	void GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
 							   size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts);
 
-	void RenderFrame(std::vector<DataStructures::Vertex> verts);
+	void RenderFrame(uint32_t sizeOfVertex, std::vector<DataStructures::Vertex> verts);
 	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };
 
 	// Getters
