@@ -77,9 +77,10 @@ int entryPoint()
 
 	// TODO: Instead of giving our application verts in setup, give it to the application during runtime
 	std::vector<DataStructures::Vertex> verts = {
-		{{ 0.0f, -0.5f}, {1.0f, 0.0f, 0.0f}},
-    	{{ 0.5f,  0.5f}, {0.0f, 1.0f, 0.0f}},
-    	{{-0.5f,  0.5f}, {0.0f, 0.0f, 1.0f}}
+		{{ -0.5f, -0.5f }, {1.0f, 0.0f, 0.0f}},
+    	{{  0.5f, -0.5f }, {0.0f, 1.0f, 0.0f}},
+    	{{  0.5f,  0.5f }, {0.0f, 0.0f, 1.0f}},
+		{{ -0.5f,  0.5f }, {1.0f, 1.0f, 1.0f}}
 	};
 
 	/*std::vector<MyVertex> myVerts = {
@@ -88,15 +89,20 @@ int entryPoint()
     	{{-0.5f,  0.5f, 0.0f}, {1.0f, 0.0f, 0.0f}}
 	};*/
 
+	std::vector<uint32_t> indices = {
+		0, 1, 2,
+		2, 3, 0 
+	};
+
     vkApp.Init(winInfo, appInfo, extensions, {});
 
 	std::array vertexInfo = DataStructures::Vertex::GetVarInfo();
-	vkApp.GraphicsPipelineSetup(shaderInfo, DataStructures::Vertex::GetSizeOf(), vertexInfo.data(), vertexInfo.size(), verts);
+	vkApp.GraphicsPipelineSetup(shaderInfo, DataStructures::Vertex::GetSizeOf(), vertexInfo.data(), vertexInfo.size(), verts, indices);
 
     while (vkApp.IsRunning())
     {
 		// TODO: When the player passes vertices here, ensure thet they're of the same type as DataStrcutures::Vertex
-    	vkApp.RenderFrame(DataStructures::Vertex::GetSizeOf(), verts);
+    	vkApp.RenderFrame(DataStructures::Vertex::GetSizeOf(), verts, indices);
 		
     	// Events (input, etc.)
     	glfwPollEvents();

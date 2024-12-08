@@ -103,7 +103,7 @@ void VulkanApplication::Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, st
 }
 
 void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
-											  size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts)
+											  size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts, std::vector<uint32_t> indices)
 {
 	// Create a graphics pipeline to run shaders and draw our image
 	m_graphicsPipeline.CreateGraphicsPipeline(m_logicalDevice.GetLogicalDevice(), shaderInfo, m_swapChain.GetExtent(), m_swapChain.GetFormat(),
@@ -133,6 +133,26 @@ void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t si
 	vertexBufferInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer;
 	m_vertexDeviceBuffer.CreateBuffer(m_physicalDevice.GetPhysicalDevice(), m_logicalDevice.GetLogicalDevice(), vertexBufferInfo,
 									  vk::MemoryPropertyFlagBits::eDeviceLocal);
+	
+	// Create index buffers to so we can send our index data to the GPU
+	// Staging buffer
+	// TODO: This needs to be made on the fly when loading data, eventually
+	vk::BufferCreateInfo indexBufferInfo(
+		{},											//flags
+		sizeof(uint32_t) * indices.size(),			//size
+		vk::BufferUsageFlagBits::eTransferSrc,		//usage
+		vk::SharingMode::eConcurrent,				//sharingMode
+		2,											//queueFamilyIndexCount
+		qfIndicesArray								//pQueueFamilyIndices
+	);
+	// TODO: Those MemoryProperty bits should probably be customisable
+	m_indexStagingBuffer.CreateBuffer(m_physicalDevice.GetPhysicalDevice(), m_logicalDevice.GetLogicalDevice(), indexBufferInfo,
+									   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
+
+	//Device buffer
+	indexBufferInfo.usage = vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer;
+	m_indexDeviceBuffer.CreateBuffer(m_physicalDevice.GetPhysicalDevice(), m_logicalDevice.GetLogicalDevice(), indexBufferInfo,
+									  vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	m_graphicsCommandPool.CreateCommandPool(m_logicalDevice.GetLogicalDevice(), vk::CommandPoolCreateFlagBits::eResetCommandBuffer,
 											m_logicalDevice.GetQueueFamilyIndices().queueFamilies.at("graphicsQueueFamily"));
@@ -153,7 +173,7 @@ void VulkanApplication::GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t si
 	m_startRender = m_logicalDevice.GetLogicalDevice().createFence(fenceInfo);
 }
 
-void VulkanApplication::RenderFrame(uint32_t sizeOfVertex, std::vector<DataStructures::Vertex> verts)
+void VulkanApplication::RenderFrame(uint32_t sizeOfVertex, std::vector<DataStructures::Vertex> verts, std::vector<uint32_t> indices)
 {
 	vk::Result result;
 
@@ -178,6 +198,11 @@ void VulkanApplication::RenderFrame(uint32_t sizeOfVertex, std::vector<DataStruc
 	m_vertexStagingBuffer.CopyBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueue("transferQueue"), &m_transientTransferCommandPool,
 									 m_vertexDeviceBuffer.GetBuffer());
 
+	m_indexStagingBuffer.FillBuffer(m_logicalDevice.GetLogicalDevice(), indices.data(), sizeof(uint32_t), indices.size());
+
+	m_indexStagingBuffer.CopyBuffer(m_logicalDevice.GetLogicalDevice(), m_logicalDevice.GetQueue("transferQueue"), &m_transientTransferCommandPool,
+									m_indexDeviceBuffer.GetBuffer());
+
 	// Graphics buffer recording start
 	vk::Extent2D scExtent = m_swapChain.GetExtent();
 
@@ -200,6 +225,8 @@ void VulkanApplication::RenderFrame(uint32_t sizeOfVertex, std::vector<DataStruc
 	vk::Buffer vertexBuffers[] = { m_vertexDeviceBuffer.GetBuffer() };
 	vk::DeviceSize offsets[] = { 0 };
 	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).bindVertexBuffers(0, 1, vertexBuffers, offsets);
+	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).bindIndexBuffer(m_indexDeviceBuffer.GetBuffer(), 0, vk::IndexType::eUint32);
+
 
 	vk::Viewport viewport(
 		0,					//x
@@ -217,12 +244,20 @@ void VulkanApplication::RenderFrame(uint32_t sizeOfVertex, std::vector<DataStruc
 	);
 	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).setScissor(0, scissorRect);
 
-	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).draw(
+	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).drawIndexed(
+		indices.size(),		//indexCount
+		1,					//instanceCount
+		0,					//firstIndex
+		0,					//vertexOffset
+		0					//firstInstance
+	);
+
+	/*m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).draw(
 		verts.size(),	//vertexCount
 		1,				//instanceCount
 		0,				//firstVertex
 		0				//firstInstance
-	);
+	);*/
 
 	// Render pass finish
 	m_graphicsCommandPool.GetCommandBuffer(m_renderCommandBufferIndex).endRenderPass();
@@ -268,6 +303,9 @@ VulkanApplication::~VulkanApplication()
 
 	m_transientTransferCommandPool.DestroyCommandPool(logicalDevice);
 	m_graphicsCommandPool.DestroyCommandPool(logicalDevice);
+
+	m_indexDeviceBuffer.DestroyBuffer(logicalDevice);
+	m_indexStagingBuffer.DestroyBuffer(logicalDevice);
 
 	m_vertexDeviceBuffer.DestroyBuffer(logicalDevice);
 	m_vertexStagingBuffer.DestroyBuffer(logicalDevice);

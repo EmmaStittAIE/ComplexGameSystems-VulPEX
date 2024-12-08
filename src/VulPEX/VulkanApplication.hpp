@@ -42,6 +42,8 @@ class VulkanApplication
 
 	BufferWrapper m_vertexStagingBuffer;
 	BufferWrapper m_vertexDeviceBuffer;
+	BufferWrapper m_indexStagingBuffer;
+	BufferWrapper m_indexDeviceBuffer;
 
 	CommandPoolWrapper m_graphicsCommandPool;
 	uint32_t m_renderCommandBufferIndex;
@@ -65,9 +67,9 @@ public:
 	void Init(WindowInfo winInfo, vk::ApplicationInfo appInfo, std::vector<const char*> vkExtensions, vk::InstanceCreateFlags vkFlags);
 
 	void GraphicsPipelineSetup(ShaderInfo shaderInfo, uint32_t sizeOfVertex, std::pair<vk::Format, uint32_t>* vertexVarsInfo,
-							   size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts);
+							   size_t vertexVarsInfoCount, std::vector<DataStructures::Vertex> verts, std::vector<uint32_t> indices);
 
-	void RenderFrame(uint32_t sizeOfVertex, std::vector<DataStructures::Vertex> verts);
+	void RenderFrame(uint32_t sizeOfVertex, std::vector<DataStructures::Vertex> verts, std::vector<uint32_t> indices);
 	void SynchroniseBeforeQuit() const { m_logicalDevice.GetLogicalDevice().waitIdle(); };
 
 	// Getters
